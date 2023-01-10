@@ -80,6 +80,23 @@ add_test(NAME FailingTest COMMAND ${CMAKE_COMMAND} -E no_such_command)
 endfunction()
 run_TestOutputSize()
 
+# Test --test-output-truncation
+function(run_TestOutputTruncation mode expected)
+  set(CASE_CTEST_TEST_ARGS EXCLUDE RunCMakeVersion)
+  set(TRUNCATED_OUTPUT ${expected})  # used in TestOutputTruncation-check.cmake
+  string(CONCAT CASE_TEST_PREFIX_CODE "
+set(CTEST_CUSTOM_MAXIMUM_PASSED_TEST_OUTPUT_SIZE 5)
+set(CTEST_CUSTOM_TEST_OUTPUT_TRUNCATION ${mode})" )
+  set(CASE_CMAKELISTS_SUFFIX_CODE "
+add_test(NAME Truncation_${mode} COMMAND \${CMAKE_COMMAND} -E echo 123456789)")
+
+  run_ctest(TestOutputTruncation_${mode})
+endfunction()
+run_TestOutputTruncation("head" "\\.\\.\\.6789")
+run_TestOutputTruncation("middle" "12\\.\\.\\..*\\.\\.\\.89")
+run_TestOutputTruncation("tail" "12345\\.\\.\\.")
+run_TestOutputTruncation("bad" "")
+
 run_ctest_test(TestRepeatBad1 REPEAT UNKNOWN:3)
 run_ctest_test(TestRepeatBad2 REPEAT UNTIL_FAIL:-1)
 
@@ -158,13 +175,25 @@ add_test(
   COMMAND ${CMAKE_COMMAND} -E
   echo <DartMeasurement type="numeric/double" name="my_custom_value">1.4847</DartMeasurement>)
 add_test(
+  NAME double_measurement2
+  COMMAND ${CMAKE_COMMAND} -E
+  echo <CTestMeasurement type="numeric/double" name="another_custom_value">1.8474</CTestMeasurement>)
+add_test(
   NAME img_measurement
   COMMAND ${CMAKE_COMMAND} -E
   echo <DartMeasurementFile name="TestImage" type="image/png">]] ${IMAGE_DIR}/cmake-logo-16.png [[</DartMeasurementFile>)
 add_test(
+  NAME img_measurement2
+  COMMAND ${CMAKE_COMMAND} -E
+  echo <CTestMeasurementFile name="TestImage2" type="image/png">]] ${IMAGE_DIR}/cmake-logo-16.png [[</CTestMeasurementFile>)
+add_test(
   NAME file_measurement
   COMMAND ${CMAKE_COMMAND} -E
   echo <DartMeasurementFile name="my_test_input_data" type="file">]] ${IMAGE_DIR}/cmake-logo-16.png [[</DartMeasurementFile>)
+add_test(
+  NAME file_measurement2
+  COMMAND ${CMAKE_COMMAND} -E
+  echo <CTestMeasurementFile name="another_test_input_data" type="file">]] ${IMAGE_DIR}/cmake-logo-16.png [[</CTestMeasurementFile>)
   ]])
   run_ctest(TestMeasurements)
 endfunction()
@@ -194,3 +223,16 @@ set_property(TEST b PROPERTY LABELS b)
   run_ctest(TestChangingLabels)
 endfunction()
 run_changing_labels()
+
+# Verify that test output can add additional labels
+function(run_extra_labels)
+  set(CASE_CMAKELISTS_SUFFIX_CODE [[
+add_test(
+  NAME custom_labels
+  COMMAND ${CMAKE_COMMAND} -E
+  echo before\n<CTestLabel>label2</CTestLabel>\n<CTestLabel>label1</CTestLabel>\n<CTestLabel>label3</CTestLabel>\n<CTestLabel>label2</CTestLabel>\nafter)
+set_tests_properties(custom_labels PROPERTIES LABELS "label1")
+  ]])
+  run_ctest(TestExtraLabels)
+endfunction()
+run_extra_labels()

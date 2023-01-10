@@ -18,6 +18,7 @@
 
 #include "cm_codecvt.hxx"
 
+#include "cmBuildOptions.h"
 #include "cmGeneratedFileStream.h"
 #include "cmGlobalCommonGenerator.h"
 #include "cmGlobalGeneratorFactory.h"
@@ -77,6 +78,7 @@ public:
 
   static std::string EncodeRuleName(std::string const& name);
   std::string EncodeLiteral(const std::string& lit);
+  void EncodeLiteralInplace(std::string& lit);
   std::string EncodePath(const std::string& path);
 
   std::unique_ptr<cmLinkLineComputer> CreateLinkLineComputer(
@@ -199,7 +201,8 @@ public:
   std::vector<GeneratedMakeCommand> GenerateBuildCommand(
     const std::string& makeProgram, const std::string& projectName,
     const std::string& projectDir, std::vector<std::string> const& targetNames,
-    const std::string& config, bool fast, int jobs, bool verbose,
+    const std::string& config, int jobs, bool verbose,
+    const cmBuildOptions& buildOptions = cmBuildOptions(),
     std::vector<std::string> const& makeOptions =
       std::vector<std::string>()) override;
 
@@ -220,7 +223,6 @@ public:
   {
     return "package_source";
   }
-  const char* GetEditCacheTargetName() const override { return "edit_cache"; }
   const char* GetRebuildCacheTargetName() const override
   {
     return "rebuild_cache";
@@ -406,7 +408,7 @@ public:
     return "1.10.2";
   }
   static std::string RequiredNinjaVersionForCodePage() { return "1.11"; }
-  bool SupportsConsolePool() const;
+  bool SupportsDirectConsole() const override;
   bool SupportsImplicitOuts() const;
   bool SupportsManifestRestat() const;
   bool SupportsMultilineDepfile() const;
@@ -415,13 +417,15 @@ public:
   bool HasOutputPathPrefix() const { return !this->OutputPathPrefix.empty(); }
   void StripNinjaOutputPathPrefixAsSuffix(std::string& path);
 
+  struct CxxModuleExportInfo;
   bool WriteDyndepFile(
     std::string const& dir_top_src, std::string const& dir_top_bld,
     std::string const& dir_cur_src, std::string const& dir_cur_bld,
     std::string const& arg_dd, std::vector<std::string> const& arg_ddis,
     std::string const& module_dir,
     std::vector<std::string> const& linked_target_dirs,
-    std::string const& arg_lang, std::string const& arg_modmapfmt);
+    std::string const& arg_lang, std::string const& arg_modmapfmt,
+    CxxModuleExportInfo const& export_info);
 
   virtual std::string BuildAlias(const std::string& alias,
                                  const std::string& /*config*/) const
@@ -482,14 +486,11 @@ protected:
     const std::set<std::string>& all, const std::set<std::string>& defaults,
     const std::vector<std::string>& items);
 
-  virtual bool InspectConfigTypeVariables() { return true; }
-
   std::set<std::string> CrossConfigs;
   std::set<std::string> DefaultConfigs;
   std::string DefaultFileConfig;
 
 private:
-  std::string GetEditCacheCommand() const override;
   bool FindMakeProgram(cmMakefile* mf) override;
   void CheckNinjaFeatures();
   void CheckNinjaCodePage();

@@ -157,12 +157,19 @@ else
   cmake_system_hpux=false
 fi
 
+# Determine whether this is AIX
+if echo "${cmake_system}" | grep AIX >/dev/null 2>&1; then
+  cmake_system_aix=true
+else
+  cmake_system_aix=false
+fi
+
 # Determine whether this is Linux
 if echo "${cmake_system}" | grep Linux >/dev/null 2>&1; then
   cmake_system_linux=true
 else
   cmake_system_linux=false
- fi
+fi
 
 # Determine whether this is a PA-RISC machine
 # This only works for Linux or HP-UX, not other PA-RISC OSs (BSD maybe?). Also
@@ -263,7 +270,6 @@ CMAKE_PROBLEMATIC_FILES="\
   Utilities/cmlibarchive/config.h \
   Utilities/cmliblzma/config.h \
   Utilities/cmnghttp2/config.h \
-  Utilities/cmzlib/zlibDllConfig.h \
   "
 
 CMAKE_UNUSED_SOURCES="\
@@ -275,6 +281,7 @@ CMAKE_UNUSED_SOURCES="\
 "
 
 CMAKE_CXX_SOURCES="\
+  cmAddCompileDefinitionsCommand \
   cmAddCustomCommandCommand \
   cmAddCustomTargetCommand \
   cmAddDefinitionsCommand \
@@ -295,6 +302,7 @@ CMAKE_CXX_SOURCES="\
   cmBinUtilsWindowsPEDumpbinGetRuntimeDependenciesTool \
   cmBinUtilsWindowsPELinker \
   cmBinUtilsWindowsPEObjdumpGetRuntimeDependenciesTool \
+  cmBlockCommand \
   cmBreakCommand \
   cmBuildCommand \
   cmCMakeLanguageCommand \
@@ -322,14 +330,17 @@ CMAKE_CXX_SOURCES="\
   cmCustomCommand \
   cmCustomCommandGenerator \
   cmCustomCommandLines \
+  cmCxxModuleMapper \
   cmDefinePropertyCommand \
   cmDefinitions \
   cmDocumentationFormatter \
+  cmELF \
   cmEnableLanguageCommand \
   cmEnableTestingCommand \
   cmExecProgramCommand \
   cmExecuteProcessCommand \
   cmExpandedCommandArgument \
+  cmExperimental \
   cmExportBuildFileGenerator \
   cmExportFileGenerator \
   cmExportInstallFileGenerator \
@@ -340,6 +351,7 @@ CMAKE_CXX_SOURCES="\
   cmFileCommand \
   cmFileCopier \
   cmFileInstaller \
+  cmFileSet \
   cmFileTime \
   cmFileTimeCache \
   cmFileTimes \
@@ -383,8 +395,10 @@ CMAKE_CXX_SOURCES="\
   cmIncludeRegularExpressionCommand \
   cmInstallCommand \
   cmInstallCommandArguments \
+  cmInstallCxxModuleBmiGenerator \
   cmInstallDirectoryGenerator \
   cmInstallExportGenerator \
+  cmInstallFileSetGenerator \
   cmInstallFilesCommand \
   cmInstallFilesGenerator \
   cmInstallGenerator \
@@ -426,11 +440,13 @@ CMAKE_CXX_SOURCES="\
   cmPolicies \
   cmProcessOutput \
   cmProjectCommand \
+  cmValue \
   cmPropertyDefinition \
   cmPropertyMap \
   cmGccDepfileLexerHelper \
   cmGccDepfileReader \
   cmReturnCommand \
+  cmPlaceholderExpander \
   cmRulePlaceholderExpander \
   cmRuntimeDependencyArchive \
   cmScriptGenerator \
@@ -478,6 +494,7 @@ CMAKE_CXX_SOURCES="\
   cmUVProcessChain \
   cmVersion \
   cmWhileCommand \
+  cmWindowsRegistry \
   cmWorkingDirectory \
   cmake  \
   cmakemain \
@@ -576,6 +593,7 @@ if ${cmake_system_mingw}; then
     src/inet.c \
     src/threadpool.c \
     src/strscpy.c \
+    src/strtok.c \
     src/timer.c \
     src/uv-common.c \
     src/win/async.c \
@@ -606,6 +624,7 @@ if ${cmake_system_mingw}; then
 else
   LIBUV_C_SOURCES="\
     src/strscpy.c \
+    src/strtok.c \
     src/timer.c \
     src/uv-common.c \
     src/unix/cmake-bootstrap.c \
@@ -621,6 +640,8 @@ else
     src/unix/process.c \
     src/unix/signal.c \
     src/unix/stream.c \
+    src/unix/tcp.c \
+    src/unix/tty.c \
     "
 fi
 
@@ -1102,6 +1123,13 @@ fi
 # Add Haiku toolkits...
 if ${cmake_system_haiku}; then
   cmake_ld_flags="${LDFLAGS} -lroot -lbe"
+fi
+
+# Add AIX arch-specific link flags.
+if ${cmake_system_aix}; then
+  if uname -p | grep powerpc >/dev/null 2>&1; then
+    cmake_ld_flags="${LDFLAGS} -Wl,-bbigtoc"
+  fi
 fi
 
 #-----------------------------------------------------------------------------
@@ -1591,6 +1619,9 @@ fi
 if ${cmake_system_mingw}; then
   cmake_report cmConfigure.h${_tmp} "#if defined(_WIN32) && !defined(NOMINMAX)"
   cmake_report cmConfigure.h${_tmp} "#  define NOMINMAX"
+  cmake_report cmConfigure.h${_tmp} "#endif"
+  cmake_report cmConfigure.h${_tmp} "#if defined(_WIN32) && !defined(KWSYS_ENCODING_DEFAULT_CODEPAGE)"
+  cmake_report cmConfigure.h${_tmp} "#  define KWSYS_ENCODING_DEFAULT_CODEPAGE CP_UTF8"
   cmake_report cmConfigure.h${_tmp} "#endif"
 fi
 

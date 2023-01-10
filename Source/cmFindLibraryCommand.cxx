@@ -12,11 +12,11 @@
 
 #include "cmGlobalGenerator.h"
 #include "cmMakefile.h"
-#include "cmProperty.h"
 #include "cmState.h"
 #include "cmStateTypes.h"
 #include "cmStringAlgorithms.h"
 #include "cmSystemTools.h"
+#include "cmValue.h"
 
 class cmExecutionStatus;
 
@@ -32,12 +32,13 @@ cmFindLibraryCommand::cmFindLibraryCommand(cmExecutionStatus& status)
 // cmFindLibraryCommand
 bool cmFindLibraryCommand::InitialPass(std::vector<std::string> const& argsIn)
 {
-  this->DebugMode = this->ComputeIfDebugModeWanted();
   this->CMakePathName = "LIBRARY";
 
   if (!this->ParseArguments(argsIn)) {
     return false;
   }
+
+  this->DebugMode = this->ComputeIfDebugModeWanted(this->VariableName);
 
   if (this->AlreadyDefined) {
     this->NormalizeFindResult();
@@ -46,7 +47,7 @@ bool cmFindLibraryCommand::InitialPass(std::vector<std::string> const& argsIn)
 
   // add custom lib<qual> paths instead of using fixed lib32, lib64 or
   // libx32
-  if (cmProp customLib = this->Makefile->GetDefinition(
+  if (cmValue customLib = this->Makefile->GetDefinition(
         "CMAKE_FIND_LIBRARY_CUSTOM_LIB_SUFFIX")) {
     this->AddArchitecturePaths(customLib->c_str());
   }
@@ -191,6 +192,7 @@ struct cmFindLibraryHelper
 
   // Context information.
   cmMakefile* Makefile;
+  cmFindBase const* FindBase;
   cmGlobalGenerator* GG;
 
   // List of valid prefixes and suffixes.
@@ -238,6 +240,11 @@ struct cmFindLibraryHelper
   bool CheckDirectory(std::string const& path);
   bool CheckDirectoryForName(std::string const& path, Name& name);
 
+  bool Validate(const std::string& path) const
+  {
+    return this->FindBase->Validate(path);
+  }
+
   cmFindBaseDebugState DebugSearches;
 
   void DebugLibraryFailed(std::string const& name, std::string const& path)
@@ -247,7 +254,7 @@ struct cmFindLibraryHelper
         cmStrCat(this->PrefixRegexStr, name, this->SuffixRegexStr);
       this->DebugSearches.FailedAt(path, regexName);
     }
-  };
+  }
 
   void DebugLibraryFound(std::string const& name, std::string const& path)
   {
@@ -256,22 +263,50 @@ struct cmFindLibraryHelper
         cmStrCat(this->PrefixRegexStr, name, this->SuffixRegexStr);
       this->DebugSearches.FoundAt(path, regexName);
     }
-  };
+  }
 };
 
+namespace {
+
+std::string const& get_prefixes(cmMakefile* mf)
+{
+#ifdef _WIN32
+  static std::string defaultPrefix = ";lib";
+#else
+  static std::string defaultPrefix = "lib";
+#endif
+  cmValue prefixProp = mf->GetDefinition("CMAKE_FIND_LIBRARY_PREFIXES");
+  return (prefixProp) ? *prefixProp : defaultPrefix;
+}
+
+std::string const& get_suffixes(cmMakefile* mf)
+{
+#ifdef _WIN32
+  static std::string defaultSuffix = ".lib;.dll.a;.a";
+#elif defined(__APPLE__)
+  static std::string defaultSuffix = ".tbd;.dylib;.so;.a";
+#elif defined(__hpux)
+  static std::string defaultSuffix = ".sl;.so;.a";
+#else
+  static std::string defaultSuffix = ".so;.a";
+#endif
+  cmValue suffixProp = mf->GetDefinition("CMAKE_FIND_LIBRARY_SUFFIXES");
+  return (suffixProp) ? *suffixProp : defaultSuffix;
+}
+}
 cmFindLibraryHelper::cmFindLibraryHelper(std::string debugName, cmMakefile* mf,
                                          cmFindBase const* base)
   : Makefile(mf)
+  , FindBase(base)
   , DebugMode(base->DebugModeEnabled())
   , DebugSearches(std::move(debugName), base)
 {
   this->GG = this->Makefile->GetGlobalGenerator();
 
   // Collect the list of library name prefixes/suffixes to try.
-  std::string const& prefixes_list =
-    this->Makefile->GetRequiredDefinition("CMAKE_FIND_LIBRARY_PREFIXES");
-  std::string const& suffixes_list =
-    this->Makefile->GetRequiredDefinition("CMAKE_FIND_LIBRARY_SUFFIXES");
+  std::string const& prefixes_list = get_prefixes(this->Makefile);
+  std::string const& suffixes_list = get_suffixes(this->Makefile);
+
   cmExpandList(prefixes_list, this->Prefixes, true);
   cmExpandList(suffixes_list, this->Suffixes, true);
   this->RegexFromList(this->PrefixRegexStr, this->Prefixes);
@@ -388,10 +423,13 @@ bool cmFindLibraryHelper::CheckDirectoryForName(std::string const& path,
     if (!exists) {
       this->DebugLibraryFailed(name.Raw, path);
     } else {
-      this->DebugLibraryFound(name.Raw, path);
-      this->BestPath = cmSystemTools::CollapseFullPath(this->TestPath);
-      cmSystemTools::ConvertToUnixSlashes(this->BestPath);
-      return true;
+      auto testPath = cmSystemTools::CollapseFullPath(this->TestPath);
+      if (this->Validate(testPath)) {
+        this->DebugLibraryFound(name.Raw, path);
+        this->BestPath = testPath;
+        return true;
+      }
+      this->DebugLibraryFailed(name.Raw, path);
     }
   }
 
@@ -415,8 +453,11 @@ bool cmFindLibraryHelper::CheckDirectoryForName(std::string const& path,
       this->TestPath = cmStrCat(path, origName);
       // Make sure the path is readable and is not a directory.
       if (cmSystemTools::FileExists(this->TestPath, true)) {
-        this->DebugLibraryFound(name.Raw, dir);
+        if (!this->Validate(cmSystemTools::CollapseFullPath(this->TestPath))) {
+          continue;
+        }
 
+        this->DebugLibraryFound(name.Raw, dir);
         // This is a matching file.  Check if it is better than the
         // best name found so far.  Earlier prefixes are preferred,
         // followed by earlier suffixes.  For OpenBSD, shared library
@@ -513,7 +554,10 @@ std::string cmFindLibraryCommand::FindFrameworkLibraryNamesPerDir()
     for (std::string const& n : this->Names) {
       fwPath = cmStrCat(d, n, ".framework");
       if (cmSystemTools::FileIsDirectory(fwPath)) {
-        return cmSystemTools::CollapseFullPath(fwPath);
+        auto finalPath = cmSystemTools::CollapseFullPath(fwPath);
+        if (this->Validate(finalPath)) {
+          return finalPath;
+        }
       }
     }
   }
@@ -530,7 +574,10 @@ std::string cmFindLibraryCommand::FindFrameworkLibraryDirsPerName()
     for (std::string const& d : this->SearchPaths) {
       fwPath = cmStrCat(d, n, ".framework");
       if (cmSystemTools::FileIsDirectory(fwPath)) {
-        return cmSystemTools::CollapseFullPath(fwPath);
+        auto finalPath = cmSystemTools::CollapseFullPath(fwPath);
+        if (this->Validate(finalPath)) {
+          return finalPath;
+        }
       }
     }
   }

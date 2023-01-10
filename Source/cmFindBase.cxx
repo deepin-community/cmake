@@ -2,27 +2,32 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmFindBase.h"
 
+#include <algorithm>
 #include <cstddef>
 #include <deque>
+#include <functional>
 #include <map>
 #include <utility>
 
+#include <cm/optional>
 #include <cmext/algorithm>
+#include <cmext/string_view>
 
 #include "cmCMakePath.h"
+#include "cmExecutionStatus.h"
+#include "cmListFileCache.h"
 #include "cmMakefile.h"
 #include "cmMessageType.h"
 #include "cmPolicies.h"
-#include "cmProperty.h"
 #include "cmRange.h"
 #include "cmSearchPath.h"
 #include "cmState.h"
 #include "cmStateTypes.h"
 #include "cmStringAlgorithms.h"
 #include "cmSystemTools.h"
+#include "cmValue.h"
+#include "cmWindowsRegistry.h"
 #include "cmake.h"
-
-class cmExecutionStatus;
 
 cmFindBase::cmFindBase(std::string findCommandName, cmExecutionStatus& status)
   : cmFindCommon(status)
@@ -123,6 +128,44 @@ bool cmFindBase::ParseArguments(std::vector<std::string> const& argsIn)
       doing = DoingNone;
       this->Required = true;
       newStyle = true;
+    } else if (args[j] == "REGISTRY_VIEW") {
+      if (++j == args.size()) {
+        this->SetError("missing required argument for \"REGISTRY_VIEW\"");
+        return false;
+      }
+      auto view = cmWindowsRegistry::ToView(args[j]);
+      if (view) {
+        this->RegistryView = *view;
+      } else {
+        this->SetError(
+          cmStrCat("given invalid value for \"REGISTRY_VIEW\": ", args[j]));
+        return false;
+      }
+    } else if (args[j] == "VALIDATOR") {
+      if (++j == args.size()) {
+        this->SetError("missing required argument for \"VALIDATOR\"");
+        return false;
+      }
+      auto command = this->Makefile->GetState()->GetCommand(args[j]);
+      if (command == nullptr) {
+        this->SetError(cmStrCat(
+          "command specified for \"VALIDATOR\" is undefined: ", args[j], '.'));
+        return false;
+      }
+      // ensure a macro is not specified as validator
+      const auto& validatorName = args[j];
+      auto macros = cmExpandedList(this->Makefile->GetProperty("MACROS"));
+      if (std::find_if(macros.begin(), macros.end(),
+                       [&validatorName](const std::string& item) {
+                         return cmSystemTools::Strucmp(validatorName.c_str(),
+                                                       item.c_str()) == 0;
+                       }) != macros.end()) {
+        this->SetError(cmStrCat(
+          "command specified for \"VALIDATOR\" is not a function: ", args[j],
+          '.'));
+        return false;
+      }
+      this->ValidatorName = args[j];
     } else if (this->CheckCommonArgument(args[j])) {
       doing = DoingNone;
     } else {
@@ -168,9 +211,39 @@ bool cmFindBase::ParseArguments(std::vector<std::string> const& argsIn)
   }
   this->ExpandPaths();
 
-  this->ComputeFinalPaths();
+  this->ComputeFinalPaths(IgnorePaths::Yes);
 
   return true;
+}
+
+bool cmFindBase::Validate(const std::string& path) const
+{
+  if (this->ValidatorName.empty()) {
+    return true;
+  }
+
+  // The validator command will be executed in an isolated scope.
+  cmMakefile::ScopePushPop varScope(this->Makefile);
+  cmMakefile::PolicyPushPop polScope(this->Makefile);
+  static_cast<void>(varScope);
+  static_cast<void>(polScope);
+
+  auto resultName =
+    cmStrCat("CMAKE_"_s, cmSystemTools::UpperCase(this->FindCommandName),
+             "_VALIDATOR_STATUS"_s);
+
+  this->Makefile->AddDefinitionBool(resultName, true);
+
+  cmListFileFunction validator(
+    this->ValidatorName, 0, 0,
+    { cmListFileArgument(resultName, cmListFileArgument::Unquoted, 0),
+      cmListFileArgument(path, cmListFileArgument::Quoted, 0) });
+  cmExecutionStatus status(*this->Makefile);
+
+  if (this->Makefile->ExecuteCommand(validator, status)) {
+    return this->Makefile->GetDefinition(resultName).IsOn();
+  }
+  return false;
 }
 
 void cmFindBase::ExpandPaths()
@@ -263,12 +336,89 @@ void cmFindBase::FillSystemEnvironmentPath()
   paths.AddSuffixes(this->SearchPathSuffixes);
 }
 
+namespace {
+struct entry_to_remove
+{
+  entry_to_remove(std::string const& name, cmMakefile* makefile)
+    : value()
+  {
+    if (cmValue to_skip = makefile->GetDefinition(
+          cmStrCat("_CMAKE_SYSTEM_PREFIX_PATH_", name, "_PREFIX_COUNT"))) {
+      cmStrToLong(to_skip, &count);
+    }
+    if (cmValue prefix_value = makefile->GetDefinition(
+          cmStrCat("_CMAKE_SYSTEM_PREFIX_PATH_", name, "_PREFIX_VALUE"))) {
+      value = *prefix_value;
+    }
+  }
+  bool valid() const { return count > 0 && !value.empty(); }
+
+  void remove_self(std::vector<std::string>& entries) const
+  {
+    if (this->valid()) {
+      long to_skip = this->count;
+      long index_to_remove = 0;
+      for (const auto& path : entries) {
+        if (path == this->value && --to_skip == 0) {
+          break;
+        }
+        ++index_to_remove;
+      }
+      entries.erase(entries.begin() + index_to_remove);
+    }
+  }
+
+  long count = -1;
+  std::string value;
+};
+}
+
 void cmFindBase::FillCMakeSystemVariablePath()
 {
   cmSearchPath& paths = this->LabeledPaths[PathLabel::CMakeSystem];
 
+  const bool install_prefix_in_list =
+    !this->Makefile->IsOn("CMAKE_FIND_NO_INSTALL_PREFIX");
+  const bool remove_install_prefix = this->NoCMakeInstallPath;
+  const bool add_install_prefix = !this->NoCMakeInstallPath &&
+    this->Makefile->IsDefinitionSet("CMAKE_FIND_USE_INSTALL_PREFIX");
+
+  // We have 3 possible states for `CMAKE_SYSTEM_PREFIX_PATH` and
+  // `CMAKE_INSTALL_PREFIX`.
+  // Either we need to remove `CMAKE_INSTALL_PREFIX`, add
+  // `CMAKE_INSTALL_PREFIX`, or do nothing.
+  //
+  // When we need to remove `CMAKE_INSTALL_PREFIX` we remove the Nth occurrence
+  // of `CMAKE_INSTALL_PREFIX` from `CMAKE_SYSTEM_PREFIX_PATH`, where `N` is
+  // computed by `CMakeSystemSpecificInformation.cmake` while constructing
+  // `CMAKE_SYSTEM_PREFIX_PATH`. This ensures that if projects / toolchains
+  // have removed `CMAKE_INSTALL_PREFIX` from the list, we don't remove
+  // some other entry by mistake ( likewise for `CMAKE_STAGING_PREFIX` )
+  entry_to_remove install_entry("INSTALL", this->Makefile);
+  entry_to_remove staging_entry("STAGING", this->Makefile);
+
+  if (remove_install_prefix && install_prefix_in_list &&
+      (install_entry.valid() || staging_entry.valid())) {
+    cmValue prefix_paths =
+      this->Makefile->GetDefinition("CMAKE_SYSTEM_PREFIX_PATH");
+
+    // remove entries from CMAKE_SYSTEM_PREFIX_PATH
+    std::vector<std::string> expanded = cmExpandedList(*prefix_paths);
+    install_entry.remove_self(expanded);
+    staging_entry.remove_self(expanded);
+
+    paths.AddPrefixPaths(expanded,
+                         this->Makefile->GetCurrentSourceDirectory().c_str());
+  } else if (add_install_prefix && !install_prefix_in_list) {
+    paths.AddCMakePrefixPath("CMAKE_INSTALL_PREFIX");
+    paths.AddCMakePrefixPath("CMAKE_STAGING_PREFIX");
+    paths.AddCMakePrefixPath("CMAKE_SYSTEM_PREFIX_PATH");
+  } else {
+    // Otherwise the current setup of `CMAKE_SYSTEM_PREFIX_PATH` is correct
+    paths.AddCMakePrefixPath("CMAKE_SYSTEM_PREFIX_PATH");
+  }
+
   std::string var = cmStrCat("CMAKE_SYSTEM_", this->CMakePathName, "_PATH");
-  paths.AddCMakePrefixPath("CMAKE_SYSTEM_PREFIX_PATH");
   paths.AddCMakePath(var);
 
   if (this->CMakePathName == "PROGRAM") {
@@ -301,9 +451,9 @@ void cmFindBase::FillUserGuessPath()
 
 bool cmFindBase::CheckForVariableDefined()
 {
-  if (cmProp value = this->Makefile->GetDefinition(this->VariableName)) {
+  if (cmValue value = this->Makefile->GetDefinition(this->VariableName)) {
     cmState* state = this->Makefile->GetState();
-    cmProp cacheEntry = state->GetCacheEntryValue(this->VariableName);
+    cmValue cacheEntry = state->GetCacheEntryValue(this->VariableName);
     bool found = !cmIsNOTFOUND(*value);
     bool cached = cacheEntry != nullptr;
     auto cacheType = cached ? state->GetCacheEntryType(this->VariableName)
@@ -311,7 +461,7 @@ bool cmFindBase::CheckForVariableDefined()
 
     if (cached && cacheType != cmStateEnums::UNINITIALIZED) {
       this->VariableType = cacheType;
-      if (const auto* hs =
+      if (const auto& hs =
             state->GetCacheEntryProperty(this->VariableName, "HELPSTRING")) {
         this->VariableDocumentation = *hs;
       }
@@ -336,7 +486,7 @@ void cmFindBase::NormalizeFindResult()
   if (this->Makefile->GetPolicyStatus(cmPolicies::CMP0125) ==
       cmPolicies::NEW) {
     // ensure the path returned by find_* command is absolute
-    const auto* existingValue =
+    const auto& existingValue =
       this->Makefile->GetDefinition(this->VariableName);
     std::string value;
     if (!existingValue->empty()) {
@@ -358,8 +508,8 @@ void cmFindBase::NormalizeFindResult()
       // value.
       if (value != *existingValue || this->AlreadyInCacheWithoutMetaInfo) {
         this->Makefile->GetCMakeInstance()->AddCacheEntry(
-          this->VariableName, value.c_str(),
-          this->VariableDocumentation.c_str(), this->VariableType);
+          this->VariableName, value, this->VariableDocumentation.c_str(),
+          this->VariableType);
         if (this->Makefile->GetPolicyStatus(cmPolicies::CMP0126) ==
             cmPolicies::NEW) {
           if (this->Makefile->IsNormalDefinitionSet(this->VariableName)) {
@@ -448,7 +598,7 @@ void cmFindBase::StoreFindResult(const std::string& value)
                   ? "files"
                   : "names"),
                ": ", cmJoin(this->Names, ", ")));
-    cmSystemTools::SetFatalErrorOccured();
+    cmSystemTools::SetFatalErrorOccurred();
   }
 }
 
@@ -496,7 +646,9 @@ cmFindBaseDebugState::~cmFindBaseDebugState()
         "  CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: ",
         !this->FindCommand->NoSystemEnvironmentPath, "\n",
         "  CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: ",
-        !this->FindCommand->NoCMakeSystemPath, "\n");
+        !this->FindCommand->NoCMakeSystemPath, "\n",
+        "  CMAKE_FIND_USE_INSTALL_PREFIX: ",
+        !this->FindCommand->NoCMakeInstallPath, "\n");
     }
 
     buffer +=

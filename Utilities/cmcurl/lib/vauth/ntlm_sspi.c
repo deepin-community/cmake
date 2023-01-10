@@ -5,7 +5,7 @@
  *                            | (__| |_| |  _ <| |___
  *                             \___|\___/|_| \_\_____|
  *
- * Copyright (C) 1998 - 2021, Daniel Stenberg, <daniel@haxx.se>, et al.
+ * Copyright (C) 1998 - 2022, Daniel Stenberg, <daniel@haxx.se>, et al.
  *
  * This software is licensed as described in the file COPYING, which
  * you should have received as part of this distribution. The terms
@@ -17,6 +17,8 @@
  *
  * This software is distributed on an "AS IS" basis, WITHOUT WARRANTY OF ANY
  * KIND, either express or implied.
+ *
+ * SPDX-License-Identifier: curl
  *
  ***************************************************************************/
 
@@ -206,7 +208,7 @@ CURLcode Curl_auth_decode_ntlm_type2_message(struct Curl_easy *data,
 
   /* Ensure we have a valid type-2 message */
   if(!Curl_bufref_len(type2)) {
-    infof(data, "NTLM handshake failure (empty type-2 message)\n");
+    infof(data, "NTLM handshake failure (empty type-2 message)");
     return CURLE_BAD_CONTENT_ENCODING;
   }
 
@@ -253,6 +255,9 @@ CURLcode Curl_auth_create_ntlm_type3_message(struct Curl_easy *data,
   unsigned long attrs;
   TimeStamp expiry; /* For Windows 9x compatibility of SSPI calls */
 
+#if defined(CURL_DISABLE_VERBOSE_STRINGS)
+  (void) data;
+#endif
   (void) passwdp;
   (void) userp;
 
@@ -309,7 +314,7 @@ CURLcode Curl_auth_create_ntlm_type3_message(struct Curl_easy *data,
                                                &type_3_desc,
                                                &attrs, &expiry);
   if(status != SEC_E_OK) {
-    infof(data, "NTLM handshake failure (type-3 message): Status=%x\n",
+    infof(data, "NTLM handshake failure (type-3 message): Status=%x",
           status);
 
     if(status == SEC_E_INSUFFICIENT_MEMORY)

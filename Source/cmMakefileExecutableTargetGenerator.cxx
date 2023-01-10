@@ -21,7 +21,6 @@
 #include "cmMakefile.h"
 #include "cmOSXBundleGenerator.h"
 #include "cmOutputConverter.h"
-#include "cmProperty.h"
 #include "cmRulePlaceholderExpander.h"
 #include "cmState.h"
 #include "cmStateDirectory.h"
@@ -29,6 +28,7 @@
 #include "cmStateTypes.h"
 #include "cmStringAlgorithms.h"
 #include "cmSystemTools.h"
+#include "cmValue.h"
 
 cmMakefileExecutableTargetGenerator::cmMakefileExecutableTargetGenerator(
   cmGeneratorTarget* target)
@@ -136,16 +136,10 @@ void cmMakefileExecutableTargetGenerator::WriteNvidiaDeviceExecutableRule(
   std::vector<std::string> depends;
   this->AppendLinkDepends(depends, linkLanguage);
 
-  // Build a list of compiler flags and linker flags.
-  std::string langFlags;
-  std::string linkFlags;
-
   // Add language feature flags.
+  std::string langFlags;
   this->LocalGenerator->AddLanguageFlagsForLinking(
     langFlags, this->GeneratorTarget, linkLanguage, this->GetConfigName());
-
-  // Add device-specific linker flags.
-  this->GetDeviceLinkFlags(linkFlags, linkLanguage);
 
   // Construct a list of files associated with this executable that
   // may need to be cleaned.
@@ -170,32 +164,35 @@ void cmMakefileExecutableTargetGenerator::WriteNvidiaDeviceExecutableRule(
 
   // Expand the rule variables.
   {
-    bool useWatcomQuote =
-      this->Makefile->IsOn(linkRuleVar + "_USE_WATCOM_QUOTE");
-
     // Set path conversion for link script shells.
     this->LocalGenerator->SetLinkScriptShell(useLinkScript);
 
-    std::unique_ptr<cmLinkLineComputer> linkLineComputer(
+    std::unique_ptr<cmLinkLineDeviceComputer> linkLineComputer(
       new cmLinkLineDeviceComputer(
         this->LocalGenerator,
         this->LocalGenerator->GetStateSnapshot().GetDirectory()));
     linkLineComputer->SetForResponse(useResponseFileForLibs);
-    linkLineComputer->SetUseWatcomQuote(useWatcomQuote);
     linkLineComputer->SetRelink(relink);
+
+    // Create set of linking flags.
+    std::string linkFlags;
+    std::string ignored_;
+    this->LocalGenerator->GetDeviceLinkFlags(
+      *linkLineComputer, this->GetConfigName(), ignored_, linkFlags, ignored_,
+      ignored_, this->GeneratorTarget);
 
     // Collect up flags to link in needed libraries.
     std::string linkLibs;
-    this->CreateLinkLibs(linkLineComputer.get(), linkLibs,
-                         useResponseFileForLibs, depends);
+    this->CreateLinkLibs(
+      linkLineComputer.get(), linkLibs, useResponseFileForLibs, depends,
+      cmMakefileTargetGenerator::ResponseFlagFor::DeviceLink);
 
     // Construct object file lists that may be needed to expand the
     // rule.
     std::string buildObjs;
-    this->CreateObjectLists(useLinkScript, false, useResponseFileForObjects,
-                            buildObjs, depends, useWatcomQuote);
-
-    std::string const& aixExports = this->GetAIXExports(this->GetConfigName());
+    this->CreateObjectLists(
+      useLinkScript, false, useResponseFileForObjects, buildObjs, depends,
+      false, cmMakefileTargetGenerator::ResponseFlagFor::DeviceLink);
 
     cmRulePlaceholderExpander::RuleVariables vars;
     std::string objectDir = this->GeneratorTarget->GetSupportDirectory();
@@ -204,11 +201,9 @@ void cmMakefileExecutableTargetGenerator::WriteNvidiaDeviceExecutableRule(
       this->LocalGenerator->MaybeRelativeToCurBinDir(objectDir),
       cmOutputConverter::SHELL);
 
-    cmOutputConverter::OutputFormat output = (useWatcomQuote)
-      ? cmOutputConverter::WATCOMQUOTE
-      : cmOutputConverter::SHELL;
     std::string target = this->LocalGenerator->ConvertToOutputFormat(
-      this->LocalGenerator->MaybeRelativeToCurBinDir(targetOutput), output);
+      this->LocalGenerator->MaybeRelativeToCurBinDir(targetOutput),
+      cmOutputConverter::SHELL);
 
     std::string targetFullPathCompilePDB =
       this->ComputeTargetCompilePDB(this->GetConfigName());
@@ -217,7 +212,6 @@ void cmMakefileExecutableTargetGenerator::WriteNvidiaDeviceExecutableRule(
                                                   cmOutputConverter::SHELL);
 
     vars.Language = linkLanguage.c_str();
-    vars.AIXExports = aixExports.c_str();
     vars.Objects = buildObjs.c_str();
     vars.ObjectDir = objectDir.c_str();
     vars.Target = target.c_str();
@@ -228,8 +222,8 @@ void cmMakefileExecutableTargetGenerator::WriteNvidiaDeviceExecutableRule(
 
     std::string launcher;
 
-    cmProp val = this->LocalGenerator->GetRuleLauncher(this->GeneratorTarget,
-                                                       "RULE_LAUNCH_LINK");
+    cmValue val = this->LocalGenerator->GetRuleLauncher(this->GeneratorTarget,
+                                                        "RULE_LAUNCH_LINK");
     if (cmNonempty(val)) {
       launcher = cmStrCat(*val, ' ');
     }
@@ -397,9 +391,8 @@ void cmMakefileExecutableTargetGenerator::WriteExecutableRule(bool relink)
                                     this->LocalGenerator->GetLinkLibsCMP0065(
                                       linkLanguage, *this->GeneratorTarget));
 
-  if (this->GeneratorTarget->GetPropertyAsBool("LINK_WHAT_YOU_USE")) {
-    this->LocalGenerator->AppendFlags(linkFlags, " -Wl,--no-as-needed");
-  }
+  this->UseLWYU = this->LocalGenerator->AppendLWYUFlags(
+    linkFlags, this->GeneratorTarget, linkLanguage);
 
   // Add language feature flags.
   this->LocalGenerator->AddLanguageFlagsForLinking(
@@ -417,8 +410,9 @@ void cmMakefileExecutableTargetGenerator::WriteExecutableRule(bool relink)
         this->LocalGenerator,
         this->LocalGenerator->GetStateSnapshot().GetDirectory());
 
-    this->AddModuleDefinitionFlag(linkLineComputer.get(), linkFlags,
-                                  this->GetConfigName());
+    this->LocalGenerator->AppendModuleDefinitionFlag(
+      linkFlags, this->GeneratorTarget, linkLineComputer.get(),
+      this->GetConfigName());
   }
 
   this->LocalGenerator->AppendIPOLinkerFlags(
@@ -528,11 +522,14 @@ void cmMakefileExecutableTargetGenerator::WriteExecutableRule(bool relink)
 
     std::string manifests = this->GetManifests(this->GetConfigName());
 
+    std::string const& aixExports = this->GetAIXExports(this->GetConfigName());
+
     cmRulePlaceholderExpander::RuleVariables vars;
     vars.CMTargetName = this->GeneratorTarget->GetName().c_str();
     vars.CMTargetType =
       cmState::GetTargetTypeName(this->GeneratorTarget->GetType()).c_str();
     vars.Language = linkLanguage.c_str();
+    vars.AIXExports = aixExports.c_str();
     vars.Objects = buildObjs.c_str();
     std::string objectDir = this->GeneratorTarget->GetSupportDirectory();
 
@@ -577,18 +574,24 @@ void cmMakefileExecutableTargetGenerator::WriteExecutableRule(bool relink)
       vars.Launcher = linkerLauncher.c_str();
     }
 
-    if (this->GeneratorTarget->GetPropertyAsBool("LINK_WHAT_YOU_USE")) {
-      std::string cmakeCommand =
-        cmStrCat(this->LocalGenerator->ConvertToOutputFormat(
-                   cmSystemTools::GetCMakeCommand(), cmLocalGenerator::SHELL),
-                 " -E __run_co_compile --lwyu=", targetOutPathReal);
-      real_link_commands.push_back(std::move(cmakeCommand));
+    if (this->UseLWYU) {
+      cmValue lwyuCheck =
+        this->Makefile->GetDefinition("CMAKE_LINK_WHAT_YOU_USE_CHECK");
+      if (lwyuCheck) {
+        std::string cmakeCommand = cmStrCat(
+          this->LocalGenerator->ConvertToOutputFormat(
+            cmSystemTools::GetCMakeCommand(), cmLocalGenerator::SHELL),
+          " -E __run_co_compile --lwyu=");
+        cmakeCommand += this->LocalGenerator->EscapeForShell(*lwyuCheck);
+        cmakeCommand += cmStrCat(" --source=", targetOutPathReal);
+        real_link_commands.push_back(std::move(cmakeCommand));
+      }
     }
 
     std::string launcher;
 
-    cmProp val = this->LocalGenerator->GetRuleLauncher(this->GeneratorTarget,
-                                                       "RULE_LAUNCH_LINK");
+    cmValue val = this->LocalGenerator->GetRuleLauncher(this->GeneratorTarget,
+                                                        "RULE_LAUNCH_LINK");
     if (cmNonempty(val)) {
       launcher = cmStrCat(*val, ' ');
     }

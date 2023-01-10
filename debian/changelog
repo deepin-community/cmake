@@ -1,3 +1,139 @@
+cmake (3.25.1-1) unstable; urgency=medium
+
+  * New upstream version 3.25.1
+
+ -- Timo Röhling <roehling@debian.org>  Wed, 30 Nov 2022 20:57:47 +0100
+
+cmake (3.25.0-3) unstable; urgency=medium
+
+  * Prefer default Python version regardless of CMP0094 (Closes: #1024625)
+
+ -- Timo Röhling <roehling@debian.org>  Thu, 24 Nov 2022 21:45:01 +0100
+
+cmake (3.25.0-2) unstable; urgency=medium
+
+  * New patch to prefer Python default version.
+    Now Python3_FIND_UNVERSIONED_NAMES is set to FIRST, so the
+    default interpreter is checked first. (Closes: #1024625)
+  * Stop shipping emacs cmake mode.
+    That mode has been split into the separate package
+    elpa-cmake-mode.
+
+ -- Timo Röhling <roehling@debian.org>  Wed, 23 Nov 2022 22:35:39 +0100
+
+cmake (3.25.0-1) unstable; urgency=medium
+
+  * New upstream version 3.25.0
+  * Drop obsolete 0001-Prefer-Debian-default-version-of-Python.patch.
+    The same effect can be achieved with -DPython3_FIND_UNVERSIONED_NAMES=FIRST
+  * Drop ancient d/NEWS
+
+ -- Timo Röhling <roehling@debian.org>  Wed, 16 Nov 2022 21:17:45 +0100
+
+cmake (3.24.3-1) unstable; urgency=medium
+
+  * New upstream version 3.24.3
+
+ -- Timo Röhling <roehling@debian.org>  Thu, 03 Nov 2022 08:51:17 +0100
+
+cmake (3.24.2-2) unstable; urgency=medium
+
+  * Improve discovery for Debian default version of Python
+
+ -- Timo Röhling <roehling@debian.org>  Fri, 14 Oct 2022 11:19:20 +0200
+
+cmake (3.24.2-1) unstable; urgency=medium
+
+  * New upstream version 3.24.2
+    - Revert AUTOMOC dummy function (Closes: #1019136)
+
+ -- Timo Röhling <roehling@debian.org>  Tue, 13 Sep 2022 21:38:03 +0200
+
+cmake (3.24.1-1) unstable; urgency=medium
+
+  * New upstream version 3.24.1
+
+ -- Timo Röhling <roehling@debian.org>  Thu, 18 Aug 2022 17:28:16 +0200
+
+cmake (3.24.0-1) unstable; urgency=medium
+
+  * New upstream version 3.24.0
+
+ -- Timo Röhling <roehling@debian.org>  Thu, 04 Aug 2022 22:13:42 +0200
+
+cmake (3.23.3-1) unstable; urgency=medium
+
+  * New upstream version 3.23.3
+  * Update Lintian overrides
+
+ -- Timo Röhling <roehling@debian.org>  Fri, 29 Jul 2022 23:19:03 +0200
+
+cmake (3.23.2-1) unstable; urgency=medium
+
+  * Bump Standards-Version to 4.6.1
+  * New upstream version 3.23.2
+    - Fix cmake-ncurses-gui crash when all cache items are deleted
+      (Closes: #1010690)
+  * Refresh patches
+    - Drop Revert-commit-f745e049-temporarily.patch
+      (applied upstream)
+
+ -- Timo Röhling <roehling@debian.org>  Wed, 25 May 2022 21:02:25 +0200
+
+cmake (3.23.1-2) unstable; urgency=medium
+
+  * Work around regression with qa=+canary.
+    Upstream has reverted the problematic commit for the
+    next point release, pending further investigation. (Closes: #1009408)
+  * Address hints from AppStream Report
+
+ -- Timo Röhling <roehling@debian.org>  Wed, 20 Apr 2022 20:47:58 +0200
+
+cmake (3.23.1-1) unstable; urgency=medium
+
+  * Add AppStream metadata for cmake-qt-gui
+  * New upstream version 3.23.1
+
+ -- Timo Röhling <roehling@debian.org>  Wed, 13 Apr 2022 00:33:22 +0200
+
+cmake (3.23.0-1) unstable; urgency=medium
+
+  * New upstream version 3.23.0
+  * Refresh patches
+    - Keep Prefer-Debian-default-version-of-Python.patch
+      (Debian specific)
+    - Drop Fix-check_symbol_exists-with-pedantic-errors.patch
+      (applied by upstream)
+
+ -- Timo Röhling <roehling@debian.org>  Tue, 29 Mar 2022 21:46:55 +0200
+
+cmake (3.22.1-1) unstable; urgency=medium
+
+  [ Mathieu Malaterre ]
+  * d/control: Add cmake-format to Suggests: line
+
+  [ Timo Röhling ]
+  * New upstream version 3.22.1
+
+ -- Timo Röhling <roehling@debian.org>  Wed, 08 Dec 2021 00:19:44 +0100
+
+cmake (3.22.0-1) unstable; urgency=medium
+
+  * Add lintian overrides for various false positives
+  * New upstream version 3.22.0
+  * Refresh patches
+    - Drop Fix-cross-compilation-with-MPI.patch (applied upstream)
+    - Drop Fix-RunCMake.CPack_DEB.EXTRA-on-Debian-non-Linux-OSe.patch
+      (applied upstream)
+    - Drop Make-FindFLTK-safe-to-include-multiple-times.patch
+      (applied upstream)
+    - Keep Prefer-Debian-default-version-of-Python.patch
+      (Debian-specific)
+    - Keep Fix-check_symbol_exists-with-pedantic-errors.patch
+      (accepted by upstream, targeted for 3.23 release)
+
+ -- Timo Röhling <roehling@debian.org>  Sat, 20 Nov 2021 13:55:40 +0100
+
 cmake (3.21.4-1) unstable; urgency=medium
 
   * Also unset _proxy variables for ninja autopkgtest (Fixup for #960179)
