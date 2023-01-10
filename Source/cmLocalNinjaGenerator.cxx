@@ -27,7 +27,6 @@
 #include "cmMessageType.h"
 #include "cmNinjaTargetGenerator.h"
 #include "cmPolicies.h"
-#include "cmProperty.h"
 #include "cmRulePlaceholderExpander.h"
 #include "cmSourceFile.h"
 #include "cmState.h"
@@ -35,6 +34,7 @@
 #include "cmStringAlgorithms.h"
 #include "cmSystemTools.h"
 #include "cmTarget.h"
+#include "cmValue.h"
 #include "cmake.h"
 
 cmLocalNinjaGenerator::cmLocalNinjaGenerator(cmGlobalGenerator* gg,
@@ -88,27 +88,11 @@ void cmLocalNinjaGenerator::Generate()
       cmGlobalNinjaGenerator::WriteComment(this->GetRulesFileStream(),
                                            "localized /showIncludes string");
       this->GetRulesFileStream() << "msvc_deps_prefix = ";
-#ifdef _WIN32
-      // Ninja uses the ANSI Windows APIs, so strings in the rules file
-      // typically need to be ANSI encoded. However, in this case the compiler
-      // is being invoked using the UTF-8 codepage so the /showIncludes prefix
-      // will be UTF-8 encoded on stdout. Ninja can't successfully compare this
-      // UTF-8 encoded prefix to the ANSI encoded msvc_deps_prefix if it
-      // contains any non-ASCII characters and dependency checking will fail.
-      // As a workaround, leave the msvc_deps_prefix UTF-8 encoded even though
-      // the rest of the file is ANSI encoded.
-      if (GetConsoleOutputCP() == CP_UTF8 && GetACP() != CP_UTF8 &&
-          this->GetGlobalGenerator()->GetMakefileEncoding() != codecvt::None) {
-        this->GetRulesFileStream().WriteRaw(showIncludesPrefix);
-      } else {
-        // Ninja 1.11 and above uses the UTF-8 code page if it's supported, so
-        // in that case we can write it normally without using raw bytes.
-        this->GetRulesFileStream() << showIncludesPrefix;
-      }
-#else
-      // It's safe to use the standard encoding on other platforms.
-      this->GetRulesFileStream() << showIncludesPrefix;
-#endif
+      // 'cl /showIncludes' encodes output in the console output code page.
+      // It may differ from the encoding used for file paths in 'build.ninja'.
+      // Ninja matches the showIncludes prefix using its raw byte sequence.
+      this->GetRulesFileStream().WriteAltEncoding(
+        showIncludesPrefix, cmGeneratedFileStream::Encoding::ConsoleOutput);
       this->GetRulesFileStream() << "\n\n";
     }
   }
@@ -205,11 +189,8 @@ cmGlobalNinjaGenerator* cmLocalNinjaGenerator::GetGlobalNinjaGenerator()
 // Virtual protected methods.
 
 std::string cmLocalNinjaGenerator::ConvertToIncludeReference(
-  std::string const& path, IncludePathStyle pathStyle,
-  cmOutputConverter::OutputFormat format)
+  std::string const& path, cmOutputConverter::OutputFormat format)
 {
-  // FIXME: Remove IncludePathStyle infrastructure.  It is no longer used.
-  static_cast<void>(pathStyle);
   return this->ConvertToOutputFormat(path, format);
 }
 
@@ -279,7 +260,7 @@ void cmLocalNinjaGenerator::WriteNinjaRequiredVersion(std::ostream& os)
   std::string requiredVersion = cmGlobalNinjaGenerator::RequiredNinjaVersion();
 
   // Ninja generator uses the 'console' pool if available (>= 1.5)
-  if (this->GetGlobalNinjaGenerator()->SupportsConsolePool()) {
+  if (this->GetGlobalNinjaGenerator()->SupportsDirectConsole()) {
     requiredVersion =
       cmGlobalNinjaGenerator::RequiredNinjaVersionForConsolePool();
   }
@@ -311,7 +292,7 @@ void cmLocalNinjaGenerator::WritePools(std::ostream& os)
 {
   cmGlobalNinjaGenerator::WriteDivider(os);
 
-  cmProp jobpools =
+  cmValue jobpools =
     this->GetCMakeInstance()->GetState()->GetGlobalProperty("JOB_POOLS");
   if (!jobpools) {
     jobpools = this->GetMakefile()->GetDefinition("CMAKE_JOB_POOLS");
@@ -796,8 +777,9 @@ cmLocalNinjaGenerator::MakeCustomCommandGenerators(
 
   bool transformDepfile = false;
   switch (cc.GetCMP0116Status()) {
-    case cmPolicies::OLD:
     case cmPolicies::WARN:
+      CM_FALLTHROUGH;
+    case cmPolicies::OLD:
       break;
     case cmPolicies::REQUIRED_IF_USED:
     case cmPolicies::REQUIRED_ALWAYS:
@@ -869,7 +851,7 @@ void cmLocalNinjaGenerator::WriteCustomCommandBuildStatements(
 std::string cmLocalNinjaGenerator::MakeCustomLauncher(
   cmCustomCommandGenerator const& ccg)
 {
-  cmProp property_value = this->Makefile->GetProperty("RULE_LAUNCH_CUSTOM");
+  cmValue property_value = this->Makefile->GetProperty("RULE_LAUNCH_CUSTOM");
 
   if (!cmNonempty(property_value)) {
     return std::string();
@@ -903,7 +885,7 @@ std::string cmLocalNinjaGenerator::MakeCustomLauncher(
 
 void cmLocalNinjaGenerator::AdditionalCleanFiles(const std::string& config)
 {
-  if (cmProp prop_value =
+  if (cmValue prop_value =
         this->Makefile->GetProperty("ADDITIONAL_CLEAN_FILES")) {
     std::vector<std::string> cleanFiles;
     {

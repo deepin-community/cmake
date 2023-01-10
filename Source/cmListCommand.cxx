@@ -25,12 +25,12 @@
 #include "cmMakefile.h"
 #include "cmMessageType.h"
 #include "cmPolicies.h"
-#include "cmProperty.h"
 #include "cmRange.h"
 #include "cmStringAlgorithms.h"
 #include "cmStringReplaceHelper.h"
 #include "cmSubcommandTable.h"
 #include "cmSystemTools.h"
+#include "cmValue.h"
 
 namespace {
 
@@ -46,7 +46,7 @@ bool GetIndexArg(const std::string& arg, int* idx, cmMakefile& mf)
           cmStrCat(cmPolicies::GetPolicyWarning(cmPolicies::CMP0121),
                    " Invalid list index \"", arg, "\".");
         mf.IssueMessage(MessageType::AUTHOR_WARNING, warn);
-        break;
+        CM_FALLTHROUGH;
       }
       case cmPolicies::OLD:
         // OLD behavior is to allow compatibility, so just ignore the
@@ -79,7 +79,7 @@ bool GetListString(std::string& listString, const std::string& var,
                    const cmMakefile& makefile)
 {
   // get the old value
-  cmProp cacheValue = makefile.GetDefinition(var);
+  cmValue cacheValue = makefile.GetDefinition(var);
   if (!cacheValue) {
     return false;
   }
@@ -155,7 +155,7 @@ bool HandleLengthCommand(std::vector<std::string> const& args,
   GetList(varArgsExpanded, listName, status.GetMakefile());
   size_t length = varArgsExpanded.size();
   char buffer[1024];
-  sprintf(buffer, "%d", static_cast<int>(length));
+  snprintf(buffer, sizeof(buffer), "%d", static_cast<int>(length));
 
   status.GetMakefile().AddDefinition(variableName, buffer);
   return true;
@@ -229,7 +229,7 @@ bool HandleAppendCommand(std::vector<std::string> const& args,
   // If `listString` or `args` is empty, no need to append `;`,
   // then index is going to be `1` and points to the end-of-string ";"
   auto const offset =
-    std::string::size_type(listString.empty() || args.empty());
+    static_cast<std::string::size_type>(listString.empty() || args.empty());
   listString += &";"[offset] + cmJoin(cmMakeRange(args).advance(2), ";");
 
   makefile.AddDefinition(listName, listString);
@@ -255,7 +255,7 @@ bool HandlePrependCommand(std::vector<std::string> const& args,
   // If `listString` or `args` is empty, no need to append `;`,
   // then `offset` is going to be `1` and points to the end-of-string ";"
   auto const offset =
-    std::string::size_type(listString.empty() || args.empty());
+    static_cast<std::string::size_type>(listString.empty() || args.empty());
   listString.insert(0,
                     cmJoin(cmMakeRange(args).advance(2), ";") + &";"[offset]);
 
@@ -678,6 +678,14 @@ public:
     this->Start = this->NormalizeIndex(this->Start, count);
     this->Stop = this->NormalizeIndex(this->Stop, count);
 
+    // Does stepping move us further from the end?
+    if (this->Start > this->Stop) {
+      throw transform_error(
+        cmStrCat("sub-command TRANSFORM, selector FOR "
+                 "expects <start> to be no greater than <stop> (",
+                 this->Start, " > ", this->Stop, ")"));
+    }
+
     // compute indexes
     auto size = (this->Stop - this->Start + 1) / this->Step;
     if ((this->Stop - this->Start + 1) % this->Step != 0) {
@@ -1026,9 +1034,10 @@ bool HandleTransformCommand(std::vector<std::string> const& args,
         }
       }
 
-      if (step < 0) {
+      if (step <= 0) {
         status.SetError("sub-command TRANSFORM, selector FOR expects "
-                        "non negative numeric value for <step>.");
+                        "positive numeric value for <step>.");
+        return false;
       }
 
       command.Selector =
@@ -1190,7 +1199,7 @@ bool HandleSortCommand(std::vector<std::string> const& args,
   const std::string messageHint = "sub-command SORT ";
 
   while (argumentIndex < args.size()) {
-    const std::string option = args[argumentIndex++];
+    std::string const& option = args[argumentIndex++];
     if (option == "COMPARE") {
       if (sortCompare != cmStringSorter::Compare::UNINITIALIZED) {
         std::string error = cmStrCat(messageHint, "option \"", option,
@@ -1199,7 +1208,7 @@ bool HandleSortCommand(std::vector<std::string> const& args,
         return false;
       }
       if (argumentIndex < args.size()) {
-        const std::string argument = args[argumentIndex++];
+        std::string const& argument = args[argumentIndex++];
         if (argument == "STRING") {
           sortCompare = cmStringSorter::Compare::STRING;
         } else if (argument == "FILE_BASENAME") {
@@ -1226,7 +1235,7 @@ bool HandleSortCommand(std::vector<std::string> const& args,
         return false;
       }
       if (argumentIndex < args.size()) {
-        const std::string argument = args[argumentIndex++];
+        std::string const& argument = args[argumentIndex++];
         if (argument == "SENSITIVE") {
           sortCaseSensitivity = cmStringSorter::CaseSensitivity::SENSITIVE;
         } else if (argument == "INSENSITIVE") {
@@ -1250,7 +1259,7 @@ bool HandleSortCommand(std::vector<std::string> const& args,
         return false;
       }
       if (argumentIndex < args.size()) {
-        const std::string argument = args[argumentIndex++];
+        std::string const& argument = args[argumentIndex++];
         if (argument == "ASCENDING") {
           sortOrder = cmStringSorter::Order::ASCENDING;
         } else if (argument == "DESCENDING") {
@@ -1337,7 +1346,7 @@ bool HandleSublistCommand(std::vector<std::string> const& args,
 
   using size_type = decltype(varArgsExpanded)::size_type;
 
-  if (start < 0 || size_type(start) >= varArgsExpanded.size()) {
+  if (start < 0 || static_cast<size_type>(start) >= varArgsExpanded.size()) {
     status.SetError(cmStrCat("begin index: ", start, " is out of range 0 - ",
                              varArgsExpanded.size() - 1));
     return false;
@@ -1348,9 +1357,10 @@ bool HandleSublistCommand(std::vector<std::string> const& args,
   }
 
   const size_type end =
-    (length == -1 || size_type(start + length) > varArgsExpanded.size())
+    (length == -1 ||
+     static_cast<size_type>(start + length) > varArgsExpanded.size())
     ? varArgsExpanded.size()
-    : size_type(start + length);
+    : static_cast<size_type>(start + length);
   std::vector<std::string> sublist(varArgsExpanded.begin() + start,
                                    varArgsExpanded.begin() + end);
   status.GetMakefile().AddDefinition(variableName, cmJoin(sublist, ";"));

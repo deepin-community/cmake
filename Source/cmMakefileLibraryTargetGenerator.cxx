@@ -21,7 +21,6 @@
 #include "cmMakefile.h"
 #include "cmOSXBundleGenerator.h"
 #include "cmOutputConverter.h"
-#include "cmProperty.h"
 #include "cmRulePlaceholderExpander.h"
 #include "cmState.h"
 #include "cmStateDirectory.h"
@@ -29,6 +28,7 @@
 #include "cmStateTypes.h"
 #include "cmStringAlgorithms.h"
 #include "cmSystemTools.h"
+#include "cmValue.h"
 
 cmMakefileLibraryTargetGenerator::cmMakefileLibraryTargetGenerator(
   cmGeneratorTarget* target)
@@ -175,12 +175,13 @@ void cmMakefileLibraryTargetGenerator::WriteSharedLibraryRules(bool relink)
       this->LocalGenerator,
       this->LocalGenerator->GetStateSnapshot().GetDirectory());
 
-  this->AddModuleDefinitionFlag(linkLineComputer.get(), extraFlags,
-                                this->GetConfigName());
+  this->LocalGenerator->AppendModuleDefinitionFlag(
+    extraFlags, this->GeneratorTarget, linkLineComputer.get(),
+    this->GetConfigName());
 
-  if (this->GeneratorTarget->GetPropertyAsBool("LINK_WHAT_YOU_USE")) {
-    this->LocalGenerator->AppendFlags(extraFlags, " -Wl,--no-as-needed");
-  }
+  this->UseLWYU = this->LocalGenerator->AppendLWYUFlags(
+    extraFlags, this->GeneratorTarget, linkLanguage);
+
   this->WriteLibraryRules(linkRuleVar, extraFlags, relink);
 }
 
@@ -209,8 +210,9 @@ void cmMakefileLibraryTargetGenerator::WriteModuleLibraryRules(bool relink)
       this->LocalGenerator,
       this->LocalGenerator->GetStateSnapshot().GetDirectory());
 
-  this->AddModuleDefinitionFlag(linkLineComputer.get(), extraFlags,
-                                this->GetConfigName());
+  this->LocalGenerator->AppendModuleDefinitionFlag(
+    extraFlags, this->GeneratorTarget, linkLineComputer.get(),
+    this->GetConfigName());
 
   this->WriteLibraryRules(linkRuleVar, extraFlags, relink);
 }
@@ -285,10 +287,6 @@ void cmMakefileLibraryTargetGenerator::WriteNvidiaDeviceLibraryRules(
   this->LocalGenerator->AddLanguageFlagsForLinking(
     langFlags, this->GeneratorTarget, linkLanguage, this->GetConfigName());
 
-  // Create set of linking flags.
-  std::string linkFlags;
-  this->GetDeviceLinkFlags(linkFlags, linkLanguage);
-
   // Clean files associated with this library.
   std::set<std::string> libCleanFiles;
   libCleanFiles.insert(
@@ -308,35 +306,36 @@ void cmMakefileLibraryTargetGenerator::WriteNvidiaDeviceLibraryRules(
   // Expand the rule variables.
   std::vector<std::string> real_link_commands;
   {
-    bool useWatcomQuote =
-      this->Makefile->IsOn(linkRuleVar + "_USE_WATCOM_QUOTE");
-
     // Set path conversion for link script shells.
     this->LocalGenerator->SetLinkScriptShell(useLinkScript);
 
     // Collect up flags to link in needed libraries.
     std::string linkLibs;
-    std::unique_ptr<cmLinkLineComputer> linkLineComputer(
+    std::unique_ptr<cmLinkLineDeviceComputer> linkLineComputer(
       new cmLinkLineDeviceComputer(
         this->LocalGenerator,
         this->LocalGenerator->GetStateSnapshot().GetDirectory()));
     linkLineComputer->SetForResponse(useResponseFileForLibs);
-    linkLineComputer->SetUseWatcomQuote(useWatcomQuote);
     linkLineComputer->SetRelink(relink);
 
-    this->CreateLinkLibs(linkLineComputer.get(), linkLibs,
-                         useResponseFileForLibs, depends);
+    // Create set of linking flags.
+    std::string linkFlags;
+    std::string ignored_;
+    this->LocalGenerator->GetDeviceLinkFlags(
+      *linkLineComputer, this->GetConfigName(), ignored_, linkFlags, ignored_,
+      ignored_, this->GeneratorTarget);
+
+    this->CreateLinkLibs(
+      linkLineComputer.get(), linkLibs, useResponseFileForLibs, depends,
+      cmMakefileTargetGenerator::ResponseFlagFor::DeviceLink);
 
     // Construct object file lists that may be needed to expand the
     // rule.
     std::string buildObjs;
-    this->CreateObjectLists(useLinkScript, false, // useArchiveRules
-                            useResponseFileForObjects, buildObjs, depends,
-                            useWatcomQuote);
-
-    cmOutputConverter::OutputFormat output = (useWatcomQuote)
-      ? cmOutputConverter::WATCOMQUOTE
-      : cmOutputConverter::SHELL;
+    this->CreateObjectLists(
+      useLinkScript, false, // useArchiveRules
+      useResponseFileForObjects, buildObjs, depends, false,
+      cmMakefileTargetGenerator::ResponseFlagFor::DeviceLink);
 
     std::string objectDir = this->GeneratorTarget->GetSupportDirectory();
     objectDir = this->LocalGenerator->ConvertToOutputFormat(
@@ -344,7 +343,8 @@ void cmMakefileLibraryTargetGenerator::WriteNvidiaDeviceLibraryRules(
       cmOutputConverter::SHELL);
 
     std::string target = this->LocalGenerator->ConvertToOutputFormat(
-      this->LocalGenerator->MaybeRelativeToCurBinDir(targetOutput), output);
+      this->LocalGenerator->MaybeRelativeToCurBinDir(targetOutput),
+      cmOutputConverter::SHELL);
 
     std::string targetFullPathCompilePDB =
       this->ComputeTargetCompilePDB(this->GetConfigName());
@@ -362,8 +362,8 @@ void cmMakefileLibraryTargetGenerator::WriteNvidiaDeviceLibraryRules(
     vars.TargetCompilePDB = targetOutPathCompilePDB.c_str();
 
     std::string launcher;
-    cmProp val = this->LocalGenerator->GetRuleLauncher(this->GeneratorTarget,
-                                                       "RULE_LAUNCH_LINK");
+    cmValue val = this->LocalGenerator->GetRuleLauncher(this->GeneratorTarget,
+                                                        "RULE_LAUNCH_LINK");
     if (cmNonempty(val)) {
       launcher = cmStrCat(*val, ' ');
     }
@@ -811,8 +811,8 @@ void cmMakefileLibraryTargetGenerator::WriteLibraryRules(
     }
 
     std::string launcher;
-    cmProp val = this->LocalGenerator->GetRuleLauncher(this->GeneratorTarget,
-                                                       "RULE_LAUNCH_LINK");
+    cmValue val = this->LocalGenerator->GetRuleLauncher(this->GeneratorTarget,
+                                                        "RULE_LAUNCH_LINK");
     if (cmNonempty(val)) {
       launcher = cmStrCat(*val, ' ');
     }
@@ -871,13 +871,18 @@ void cmMakefileLibraryTargetGenerator::WriteLibraryRules(
       // Get the set of commands.
       std::string linkRule = this->GetLinkRule(linkRuleVar);
       cmExpandList(linkRule, real_link_commands);
-      if (this->GeneratorTarget->GetPropertyAsBool("LINK_WHAT_YOU_USE") &&
-          (this->GeneratorTarget->GetType() == cmStateEnums::SHARED_LIBRARY)) {
-        std::string cmakeCommand = cmStrCat(
-          this->LocalGenerator->ConvertToOutputFormat(
-            cmSystemTools::GetCMakeCommand(), cmLocalGenerator::SHELL),
-          " -E __run_co_compile --lwyu=", targetOutPathReal);
-        real_link_commands.push_back(std::move(cmakeCommand));
+      if (this->UseLWYU) {
+        cmValue lwyuCheck =
+          this->Makefile->GetDefinition("CMAKE_LINK_WHAT_YOU_USE_CHECK");
+        if (lwyuCheck) {
+          std::string cmakeCommand = cmStrCat(
+            this->LocalGenerator->ConvertToOutputFormat(
+              cmSystemTools::GetCMakeCommand(), cmLocalGenerator::SHELL),
+            " -E __run_co_compile --lwyu=");
+          cmakeCommand += this->LocalGenerator->EscapeForShell(*lwyuCheck);
+          cmakeCommand += cmStrCat(" --source=", targetOutPathReal);
+          real_link_commands.push_back(std::move(cmakeCommand));
+        }
       }
 
       // Expand placeholders.
@@ -931,7 +936,9 @@ void cmMakefileLibraryTargetGenerator::WriteLibraryRules(
   }
 
   // Compute the list of outputs.
-  std::vector<std::string> outputs(1, targetFullPathReal);
+  std::vector<std::string> outputs;
+  outputs.reserve(3);
+  outputs.push_back(targetFullPathReal);
   if (this->TargetNames.SharedObject != this->TargetNames.Real) {
     outputs.push_back(targetFullPathSO);
   }

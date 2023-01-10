@@ -11,10 +11,12 @@
 #include <string>
 #include <vector>
 
+#include <cm/optional>
 #include <cm/string_view>
 
 #include "cmGlobalGenerator.h"
 #include "cmTransformDepfile.h"
+#include "cmValue.h"
 #include "cmXCodeObject.h"
 
 class cmCustomCommand;
@@ -78,7 +80,8 @@ public:
   std::vector<GeneratedMakeCommand> GenerateBuildCommand(
     const std::string& makeProgram, const std::string& projectName,
     const std::string& projectDir, std::vector<std::string> const& targetNames,
-    const std::string& config, bool fast, int jobs, bool verbose,
+    const std::string& config, int jobs, bool verbose,
+    const cmBuildOptions& buildOptions = cmBuildOptions(),
     std::vector<std::string> const& makeOptions =
       std::vector<std::string>()) override;
 
@@ -104,7 +107,8 @@ public:
 
   bool IsXcode() const override { return true; }
 
-  bool HasKnownObjectFileLocation(std::string* reason) const override;
+  bool HasKnownObjectFileLocation(cmTarget const&,
+                                  std::string* reason) const override;
 
   bool IsIPOSupported() const override { return true; }
 
@@ -137,11 +141,6 @@ public:
 protected:
   void AddExtraIDETargets() override;
   void Generate() override;
-
-  FindMakeProgramStage GetFindMakeProgramStage() const override
-  {
-    return FindMakeProgramStage::Early;
-  }
 
 private:
   enum EmbedActionFlags
@@ -221,10 +220,17 @@ private:
                           const std::string& dstSubfolderSpec,
                           int actionsOnByDefault);
   void AddEmbeddedFrameworks(cmXCodeObject* target);
+  void AddEmbeddedPlugIns(cmXCodeObject* target);
   void AddEmbeddedAppExtensions(cmXCodeObject* target);
   void AddPositionIndependentLinkAttribute(cmGeneratorTarget* target,
                                            cmXCodeObject* buildSettings,
                                            const std::string& configName);
+  void CreateGlobalXCConfigSettings(cmLocalGenerator* root,
+                                    cmXCodeObject* config,
+                                    const std::string& configName);
+  void CreateTargetXCConfigSettings(cmGeneratorTarget* target,
+                                    cmXCodeObject* config,
+                                    const std::string& configName);
   void CreateBuildSettings(cmGeneratorTarget* gtgt,
                            cmXCodeObject* buildSettings,
                            const std::string& buildType);
@@ -327,14 +333,15 @@ private:
   bool XcodeBuildCommandInitialized;
 
   void PrintCompilerAdvice(std::ostream&, std::string const&,
-                           const char*) const override
+                           cmValue) const override
   {
   }
 
-  std::string GetObjectsDirectory(const std::string& projName,
-                                  const std::string& configName,
-                                  const cmGeneratorTarget* t,
-                                  const std::string& variant) const;
+  std::string GetLibraryOrFrameworkPath(const std::string& path) const;
+
+  std::string GetSymrootDir() const;
+  std::string GetTargetTempDir(cmGeneratorTarget const* gt,
+                               std::string const& configName) const;
 
   static std::string GetDeploymentPlatform(const cmMakefile* mf);
 

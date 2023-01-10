@@ -1,0 +1,54 @@
+From: =?utf-8?q?Timo_R=C3=B6hling?= <roehling@debian.org>
+Date: Thu, 24 Nov 2022 21:40:09 +0100
+Subject: Prefer default Python version
+
+This patch prefers /usr/bin/python3 as interpreter over all others,
+subject to version restrictions. CMP0094 is forced to the NEW
+behavior, because the OLD behavior will always end up with the newest
+installed Python version.
+
+Forwarded: not-needed
+---
+ Modules/FindPython/Support.cmake | 9 ++-------
+ Modules/FindPythonInterp.cmake   | 1 +
+ 2 files changed, 3 insertions(+), 7 deletions(-)
+
+diff --git a/Modules/FindPython/Support.cmake b/Modules/FindPython/Support.cmake
+index 7a127e4..cfa852d 100644
+--- a/Modules/FindPython/Support.cmake
++++ b/Modules/FindPython/Support.cmake
+@@ -1250,12 +1250,7 @@ endif()
+ unset (${_PYTHON_PREFIX}_SOABI)
+ 
+ # Define lookup strategy
+-cmake_policy (GET CMP0094 _${_PYTHON_PREFIX}_LOOKUP_POLICY)
+-if (_${_PYTHON_PREFIX}_LOOKUP_POLICY STREQUAL "NEW")
+-  set (_${_PYTHON_PREFIX}_FIND_STRATEGY "LOCATION")
+-else()
+-  set (_${_PYTHON_PREFIX}_FIND_STRATEGY "VERSION")
+-endif()
++set (_${_PYTHON_PREFIX}_FIND_STRATEGY "LOCATION")
+ if (DEFINED ${_PYTHON_PREFIX}_FIND_STRATEGY)
+   if (NOT ${_PYTHON_PREFIX}_FIND_STRATEGY MATCHES "^(VERSION|LOCATION)$")
+     message (AUTHOR_WARNING "Find${_PYTHON_PREFIX}: ${${_PYTHON_PREFIX}_FIND_STRATEGY}: invalid value for '${_PYTHON_PREFIX}_FIND_STRATEGY'. 'VERSION' or 'LOCATION' expected.")
+@@ -1436,7 +1431,7 @@ if (DEFINED ${_PYTHON_PREFIX}_FIND_UNVERSIONED_NAMES)
+     set (_${_PYTHON_PREFIX}_FIND_UNVERSIONED_NAMES ${${_PYTHON_PREFIX}_FIND_UNVERSIONED_NAMES})
+   endif()
+ else()
+-  set (_${_PYTHON_PREFIX}_FIND_UNVERSIONED_NAMES LAST)
++  set (_${_PYTHON_PREFIX}_FIND_UNVERSIONED_NAMES FIRST)
+ endif()
+ 
+ 
+diff --git a/Modules/FindPythonInterp.cmake b/Modules/FindPythonInterp.cmake
+index 7ad3587..70f4446 100644
+--- a/Modules/FindPythonInterp.cmake
++++ b/Modules/FindPythonInterp.cmake
+@@ -94,6 +94,7 @@ if(DEFINED PYTHONLIBS_VERSION_STRING)
+ endif()
+ # Search for the current active python version first
+ list(APPEND _Python_VERSIONS ";")
++list(APPEND _Python_VERSIONS "3")
+ list(APPEND _Python_VERSIONS ${_PYTHON_FIND_OTHER_VERSIONS})
+ 
+ unset(_PYTHON_FIND_OTHER_VERSIONS)

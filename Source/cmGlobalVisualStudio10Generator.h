@@ -2,13 +2,23 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #pragma once
 
+#include <cstddef>
 #include <memory>
 #include <set>
+#include <string>
+#include <vector>
 
 #include <cm/optional>
 #include <cm/string_view>
 
 #include "cmGlobalVisualStudio8Generator.h"
+
+class cmGeneratorTarget;
+class cmLocalGenerator;
+class cmMakefile;
+class cmSourceFile;
+class cmake;
+struct cmIDEFlagTable;
 
 /** \class cmGlobalVisualStudio10Generator
  * \brief Write a Unix makefiles.
@@ -18,19 +28,17 @@
 class cmGlobalVisualStudio10Generator : public cmGlobalVisualStudio8Generator
 {
 public:
-  static std::unique_ptr<cmGlobalGeneratorFactory> NewFactory();
-
-  bool MatchesGeneratorName(const std::string& name) const override;
+  bool IsVisualStudioAtLeast10() const override { return true; }
 
   bool SetSystemName(std::string const& s, cmMakefile* mf) override;
-  bool SetGeneratorPlatform(std::string const& p, cmMakefile* mf) override;
   bool SetGeneratorToolset(std::string const& ts, bool build,
                            cmMakefile* mf) override;
 
   std::vector<GeneratedMakeCommand> GenerateBuildCommand(
     const std::string& makeProgram, const std::string& projectName,
     const std::string& projectDir, std::vector<std::string> const& targetNames,
-    const std::string& config, bool fast, int jobs, bool verbose,
+    const std::string& config, int jobs, bool verbose,
+    const cmBuildOptions& buildOptions = cmBuildOptions(),
     std::vector<std::string> const& makeOptions =
       std::vector<std::string>()) override;
 
@@ -117,7 +125,6 @@ public:
   bool TargetsAndroid() const { return this->SystemIsAndroid; }
 
   const char* GetCMakeCFGIntDir() const override { return "$(Configuration)"; }
-  bool Find64BitTools(cmMakefile* mf);
 
   /** Generate an <output>.rule file path for a given command output.  */
   std::string GenerateRuleFile(std::string const& output) const override;
@@ -131,6 +138,8 @@ public:
   virtual cm::optional<std::string> GetVSInstanceVersion() const { return {}; }
 
   bool GetSupportsUnityBuilds() const { return this->SupportsUnityBuilds; }
+
+  virtual cm::optional<std::string> FindMSBuildCommandEarly(cmMakefile* mf);
 
   bool FindMakeProgram(cmMakefile* mf) override;
 
@@ -157,6 +166,8 @@ public:
   cmIDEFlagTable const* GetMasmFlagTable() const;
   cmIDEFlagTable const* GetNasmFlagTable() const;
 
+  bool IsMsBuildRestoreSupported() const;
+
 protected:
   cmGlobalVisualStudio10Generator(cmake* cm, const std::string& name,
                                   std::string const& platformInGeneratorName);
@@ -182,7 +193,8 @@ protected:
     None,
     Default,
     PropsExist,
-    PropsMissing
+    PropsMissing,
+    PropsIndeterminate
   };
   virtual AuxToolset FindAuxToolset(std::string& version,
                                     std::string& props) const;
@@ -222,11 +234,9 @@ protected:
   bool SystemIsWindowsPhone = false;
   bool SystemIsWindowsStore = false;
   bool SystemIsAndroid = false;
+  bool MSBuildCommandInitialized = false;
 
 private:
-  class Factory;
-  friend class Factory;
-
   struct LongestSourcePath
   {
     LongestSourcePath()
@@ -243,7 +253,6 @@ private:
   LongestSourcePath LongestSource;
 
   std::string MSBuildCommand;
-  bool MSBuildCommandInitialized;
   std::set<std::string> AndroidExecutableWarnings;
   virtual std::string FindMSBuildCommand();
   std::string FindDevEnvCommand() override;
@@ -251,7 +260,7 @@ private:
 
   std::string GeneratorToolsetVersion;
 
-  bool PlatformToolsetNeedsDebugEnum;
+  bool PlatformToolsetNeedsDebugEnum = false;
 
   bool ParseGeneratorToolset(std::string const& ts, cmMakefile* mf);
 
@@ -272,7 +281,7 @@ private:
   std::string VCTargetsPath;
   bool FindVCTargetsPath(cmMakefile* mf);
 
-  bool CudaEnabled;
+  bool CudaEnabled = false;
 
   // We do not use the reload macros for VS >= 10.
   std::string GetUserMacrosDirectory() override { return ""; }

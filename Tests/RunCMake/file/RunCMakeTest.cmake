@@ -47,6 +47,7 @@ run_cmake(GLOB_RECURSE)
 run_cmake(GLOB_RECURSE-noexp-FOLLOW_SYMLINKS)
 run_cmake(SIZE)
 run_cmake(SIZE-error-does-not-exist)
+run_cmake(TIMESTAMP)
 
 run_cmake(REMOVE-empty)
 
@@ -97,7 +98,9 @@ if(NOT WIN32
   run_cmake(READ_SYMLINK)
   run_cmake(READ_SYMLINK-noexist)
   run_cmake(READ_SYMLINK-notsymlink)
-  run_cmake(INSTALL-FOLLOW_SYMLINK_CHAIN)
+  if(NOT CYGWIN)
+    run_cmake(INSTALL-FOLLOW_SYMLINK_CHAIN)
+  endif()
 endif()
 
 run_cmake(REAL_PATH-unexpected-arg)

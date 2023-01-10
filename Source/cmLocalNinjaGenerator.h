@@ -10,9 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "cmListFileCache.h"
 #include "cmLocalCommonGenerator.h"
-#include "cmLocalGenerator.h"
 #include "cmNinjaTypes.h"
 #include "cmOutputConverter.h"
 
@@ -22,6 +20,7 @@ class cmGeneratedFileStream;
 class cmGeneratorTarget;
 class cmGlobalGenerator;
 class cmGlobalNinjaGenerator;
+class cmListFileBacktrace;
 class cmMakefile;
 class cmRulePlaceholderExpander;
 class cmake;
@@ -93,8 +92,7 @@ public:
 
 protected:
   std::string ConvertToIncludeReference(
-    std::string const& path, IncludePathStyle pathStyle,
-    cmOutputConverter::OutputFormat format) override;
+    std::string const& path, cmOutputConverter::OutputFormat format) override;
 
 private:
   cmGeneratedFileStream& GetImplFileStream(const std::string& config) const;

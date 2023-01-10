@@ -50,7 +50,7 @@ void OpenReferenceManual()
 
   if (!cmSystemTools::GetHTMLDoc().empty()) {
     url = QUrl::fromLocalFile(
-      QDir(QString::fromLocal8Bit(cmSystemTools::GetHTMLDoc().data()))
+      QDir(QString::fromStdString(cmSystemTools::GetHTMLDoc()))
         .filePath("index.html"));
   }
 
@@ -226,7 +226,8 @@ CMakeSetupDialog::CMakeSetupDialog()
   this->SourceDirectory->setCompleter(new QCMakeFileCompleter(this, true));
 
   // fixed pitch font in output window
-  QFont outputFont("Courier");
+  QFont outputFont("Courier New");
+  outputFont.setStyleHint(QFont::Monospace);
   this->Output->setFont(outputFont);
   this->ErrorFormat.setForeground(QBrush(Qt::red));
 
@@ -730,12 +731,12 @@ void CMakeSetupDialog::updatePreset(const QString& name)
 }
 
 void CMakeSetupDialog::showPresetLoadError(
-  const QString& dir, cmCMakePresetsFile::ReadFileResult result)
+  const QString& dir, cmCMakePresetsGraph::ReadFileResult result)
 {
   QMessageBox::warning(
     this, "Error Reading CMake Presets",
-    QString::fromLocal8Bit("Could not read presets from %1: %2")
-      .arg(dir, cmCMakePresetsFile::ResultToString(result)));
+    QString("Could not read presets from %1: %2")
+      .arg(dir, cmCMakePresetsGraph::ResultToString(result)));
 }
 
 void CMakeSetupDialog::doBinaryBrowse()

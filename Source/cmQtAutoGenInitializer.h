@@ -95,7 +95,9 @@ public:
 
     GenVarsT(GenT gen)
       : Gen(gen)
-      , GenNameUpper(cmQtAutoGen::GeneratorNameUpper(gen)){};
+      , GenNameUpper(cmQtAutoGen::GeneratorNameUpper(gen))
+    {
+    }
   };
 
   /** @param mocExecutable The file path to the moc executable. Will be used as
@@ -152,6 +154,8 @@ private:
   bool GetQtExecutable(GenVarsT& genVars, const std::string& executable,
                        bool ignoreMissingTarget) const;
 
+  void handleSkipPch(cmSourceFile* sf);
+
   cmQtAutoGenGlobalInitializer* GlobalInitializer = nullptr;
   cmGeneratorTarget* GenTarget = nullptr;
   cmGlobalGenerator* GlobalGen = nullptr;
@@ -176,6 +180,7 @@ private:
   {
     std::string Info;
     std::string Build;
+    std::string RelativeBuild;
     std::string Work;
     ConfigString Include;
     std::string IncludeGenExp;
@@ -209,7 +214,9 @@ private:
   struct MocT : public GenVarsT
   {
     MocT()
-      : GenVarsT(GenT::MOC){};
+      : GenVarsT(GenT::MOC)
+    {
+    }
 
     bool RelaxedMode = false;
     bool PathPrefix = false;
@@ -237,7 +244,9 @@ private:
     using UiFileT = std::pair<std::string, std::vector<std::string>>;
 
     UicT()
-      : GenVarsT(GenT::UIC){};
+      : GenVarsT(GenT::UIC)
+    {
+    }
 
     std::set<std::string> SkipUi;
     std::vector<std::string> UiFilesNoOptions;
@@ -252,7 +261,9 @@ private:
   struct RccT : public GenVarsT
   {
     RccT()
-      : GenVarsT(GenT::RCC){};
+      : GenVarsT(GenT::RCC)
+    {
+    }
 
     bool GlobalTarget = false;
     std::vector<Qrc> Qrcs;

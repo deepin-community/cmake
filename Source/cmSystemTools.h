@@ -4,11 +4,18 @@
 
 #include "cmConfigure.h" // IWYU pragma: keep
 
+#if !defined(_WIN32)
+#  include <sys/types.h>
+#endif
+
 #include <cstddef>
 #include <functional>
+#include <map>
+#include <sstream>
 #include <string>
 #include <vector>
 
+#include <cm/optional>
 #include <cm/string_view>
 
 #include "cmsys/Process.h"
@@ -77,32 +84,36 @@ public:
   static bool GetInterruptFlag();
 
   //! Return true if there was an error at any point.
-  static bool GetErrorOccuredFlag()
+  static bool GetErrorOccurredFlag()
   {
-    return cmSystemTools::s_ErrorOccured ||
-      cmSystemTools::s_FatalErrorOccured || GetInterruptFlag();
+    return cmSystemTools::s_ErrorOccurred ||
+      cmSystemTools::s_FatalErrorOccurred || GetInterruptFlag();
   }
   //! If this is set to true, cmake stops processing commands.
-  static void SetFatalErrorOccured()
+  static void SetFatalErrorOccurred()
   {
-    cmSystemTools::s_FatalErrorOccured = true;
+    cmSystemTools::s_FatalErrorOccurred = true;
   }
-  static void SetErrorOccured() { cmSystemTools::s_ErrorOccured = true; }
+  static void SetErrorOccurred() { cmSystemTools::s_ErrorOccurred = true; }
   //! Return true if there was an error at any point.
-  static bool GetFatalErrorOccured()
+  static bool GetFatalErrorOccurred()
   {
-    return cmSystemTools::s_FatalErrorOccured || GetInterruptFlag();
+    return cmSystemTools::s_FatalErrorOccurred || GetInterruptFlag();
   }
 
   //! Set the error occurred flag and fatal error back to false
-  static void ResetErrorOccuredFlag()
+  static void ResetErrorOccurredFlag()
   {
-    cmSystemTools::s_FatalErrorOccured = false;
-    cmSystemTools::s_ErrorOccured = false;
+    cmSystemTools::s_FatalErrorOccurred = false;
+    cmSystemTools::s_ErrorOccurred = false;
   }
 
   //! Return true if the path is a framework
-  static bool IsPathToFramework(const std::string& value);
+  static bool IsPathToFramework(const std::string& path);
+
+  //! Return true if the path is a macOS non-framework shared library (aka
+  //! .dylib)
+  static bool IsPathToMacOSSharedLibrary(const std::string& path);
 
   static bool DoesFileExistWithExtensions(
     const std::string& name, const std::vector<std::string>& sourceExts);
@@ -144,6 +155,27 @@ public:
     Failure,
   };
 
+#if defined(_MSC_VER)
+  /** Visual C++ does not define mode_t. */
+  using mode_t = unsigned short;
+#endif
+
+  /**
+   * Make a new temporary directory.  The path must end in "XXXXXX", and will
+   * be modified to reflect the name of the directory created.  This function
+   * is similar to POSIX mkdtemp (and is implemented using the same where that
+   * function is available).
+   *
+   * This function can make a full path even if none of the directories existed
+   * prior to calling this function.
+   *
+   * Note that this function may modify \p path even if it does not succeed.
+   */
+  static cmsys::Status MakeTempDirectory(char* path,
+                                         const mode_t* mode = nullptr);
+  static cmsys::Status MakeTempDirectory(std::string& path,
+                                         const mode_t* mode = nullptr);
+
   /** Copy a file. */
   static bool CopySingleFile(const std::string& oldname,
                              const std::string& newname);
@@ -175,6 +207,7 @@ public:
   static void MoveFileIfDifferent(const std::string& source,
                                   const std::string& destination);
 
+#ifndef CMAKE_BOOTSTRAP
   //! Compute the hash of a file
   static std::string ComputeFileHash(const std::string& source,
                                      cmCryptoHash::Algo algo);
@@ -182,8 +215,11 @@ public:
   /** Compute the md5sum of a string.  */
   static std::string ComputeStringMD5(const std::string& input);
 
+#  ifdef _WIN32
   //! Get the SHA thumbprint for a certificate file
   static std::string ComputeCertificateThumbprint(const std::string& source);
+#  endif
+#endif
 
   /**
    * Run a single executable command
@@ -280,7 +316,10 @@ public:
   /**
    * Compare versions
    */
-  static bool VersionCompare(CompareOp op, const char* lhs, const char* rhs);
+  static bool VersionCompare(CompareOp op, const std::string& lhs,
+                             const std::string& rhs);
+  static bool VersionCompare(CompareOp op, const std::string& lhs,
+                             const char rhs[]);
   static bool VersionCompareEqual(std::string const& lhs,
                                   std::string const& rhs);
   static bool VersionCompareGreater(std::string const& lhs,
@@ -366,6 +405,42 @@ public:
   /** Append multiple variables to the current environment. */
   static void AppendEnv(std::vector<std::string> const& env);
 
+  /**
+   * Helper class to represent an environment diff directly. This is to avoid
+   * repeated in-place environment modification (i.e. via setenv/putenv), which
+   * could be slow.
+   */
+  class EnvDiff
+  {
+  public:
+    /** Append multiple variables to the current environment diff */
+    void AppendEnv(std::vector<std::string> const& env);
+
+    /**
+     * Add a single variable (or remove if no = sign) to the current
+     * environment diff.
+     */
+    void PutEnv(const std::string& env);
+
+    /** Remove a single variable from the current environment diff. */
+    void UnPutEnv(const std::string& env);
+
+    /**
+     * Apply an ENVIRONMENT_MODIFICATION operation to this diff. Returns
+     * false and issues an error on parse failure.
+     */
+    bool ParseOperation(const std::string& envmod);
+
+    /**
+     * Apply this diff to the actual environment, optionally writing out the
+     * modifications to a CTest-compatible measurement stream.
+     */
+    void ApplyToCurrentEnv(std::ostringstream* measurement = nullptr);
+
+  private:
+    std::map<std::string, cm::optional<std::string>> diff;
+  };
+
   /** Helper class to save and restore the environment.
       Instantiate this class as an automatic variable on
       the stack. Its constructor saves a copy of the current
@@ -406,6 +481,12 @@ public:
     TarCompressNone
   };
 
+  enum class cmTarExtractTimestamps
+  {
+    Yes,
+    No
+  };
+
   static bool ListTar(const std::string& outFileName,
                       const std::vector<std::string>& files, bool verbose);
   static bool CreateTar(const std::string& outFileName,
@@ -415,7 +496,9 @@ public:
                         std::string const& format = std::string(),
                         int compressionLevel = 0);
   static bool ExtractTar(const std::string& inFileName,
-                         const std::vector<std::string>& files, bool verbose);
+                         const std::vector<std::string>& files,
+                         cmTarExtractTimestamps extractTimestamps,
+                         bool verbose);
   // This should be called first thing in main
   // it will keep child processes from inheriting the
   // stdin and stdout of this process.  This is important
@@ -490,6 +573,14 @@ public:
   };
   static WindowsFileRetry GetWindowsFileRetry();
   static WindowsFileRetry GetWindowsDirectoryRetry();
+
+  struct WindowsVersion
+  {
+    unsigned int dwMajorVersion;
+    unsigned int dwMinorVersion;
+    unsigned int dwBuildNumber;
+  };
+  static WindowsVersion GetWindowsVersion();
 #endif
 
   /** Get the real path for a given path, removing all symlinks.
@@ -504,22 +595,27 @@ public:
   /** Create a symbolic link if the platform supports it.  Returns whether
       creation succeeded. */
   static cmsys::Status CreateSymlink(std::string const& origName,
-                                     std::string const& newName,
-                                     std::string* errorMessage = nullptr);
+                                     std::string const& newName);
+  static cmsys::Status CreateSymlinkQuietly(std::string const& origName,
+                                            std::string const& newName);
 
   /** Create a hard link if the platform supports it.  Returns whether
       creation succeeded. */
   static cmsys::Status CreateLink(std::string const& origName,
-                                  std::string const& newName,
-                                  std::string* errorMessage = nullptr);
+                                  std::string const& newName);
+  static cmsys::Status CreateLinkQuietly(std::string const& origName,
+                                         std::string const& newName);
 
   /** Get the system name. */
   static cm::string_view GetSystemName();
 
+  /** Get the system path separator character */
+  static char GetSystemPathlistSeparator();
+
 private:
   static bool s_ForceUnixPaths;
   static bool s_RunCommandHideConsole;
-  static bool s_ErrorOccured;
-  static bool s_FatalErrorOccured;
+  static bool s_ErrorOccurred;
+  static bool s_FatalErrorOccurred;
   static bool s_DisableRunCommandOutput;
 };

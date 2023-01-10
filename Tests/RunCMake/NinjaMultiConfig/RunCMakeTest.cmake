@@ -17,7 +17,7 @@ function(check_files dir)
   list(SORT expected)
 
   file(GLOB_RECURSE actual "${dir}/*")
-  list(FILTER actual EXCLUDE REGEX "/CMakeFiles/|\\.ninja$|/CMakeCache\\.txt$|/target_files[^/]*\\.cmake$|/\\.ninja_[^/]*$|/cmake_install\\.cmake$|\\.ilk$|\\.manifest$|\\.pdb$|\\.exp$|/install_manifest\\.txt$")
+  list(FILTER actual EXCLUDE REGEX "/CMakeFiles/|\\.ninja$|/CMakeCache\\.txt$|/target_files[^/]*\\.cmake$|/\\.ninja_[^/]*$|/cmake_install\\.cmake$|\\.ilk$|\\.manifest$|\\.pdb$|\\.exp$|/install_manifest\\.txt$|/\\.qt/QtDeploySupport[^/]*\\.cmake$")
   foreach(f IN LISTS _check_files_INCLUDE _check_files_EXCLUDE)
     if(EXISTS ${f})
       list(APPEND actual ${f})
@@ -344,6 +344,16 @@ run_ninja(CustomCommandOutputGenex echo_dbgx-release build-Release.ninja echo_db
 run_ninja(CustomCommandOutputGenex clean-release-graph build-Release.ninja -t clean)
 run_ninja(CustomCommandOutputGenex echo_dbgx-debug-in-release-graph build-Release.ninja echo_dbgx:Debug)
 run_ninja(CustomCommandOutputGenex clean-release-graph build-Release.ninja -t clean)
+# echo_depend_target
+run_ninja(CustomCommandOutputGenex echo_depend_target-debug-prep build-Debug.ninja echo:Debug)
+run_ninja(CustomCommandOutputGenex echo_depend_target-debug build-Debug.ninja echo_depend_target)
+run_ninja(CustomCommandOutputGenex clean-debug-graph build-Debug.ninja -t clean)
+run_ninja(CustomCommandOutputGenex echo_depend_target-release-prep build-Release.ninja echo:Release)
+run_ninja(CustomCommandOutputGenex echo_depend_target-release build-Release.ninja echo_depend_target)
+run_ninja(CustomCommandOutputGenex clean-release-graph build-Release.ninja -t clean)
+run_ninja(CustomCommandOutputGenex echo_depend_target-debug-in-release-graph-prep build-Release.ninja echo:Release)
+run_ninja(CustomCommandOutputGenex echo_depend_target-debug-in-release-graph build-Release.ninja echo_depend_target:Debug)
+run_ninja(CustomCommandOutputGenex clean-release-graph build-Release.ninja -t clean)
 # echo_target_raw
 run_ninja(CustomCommandOutputGenex echo_target_raw-debug build-Debug.ninja echo_target_raw:Debug)
 run_ninja(CustomCommandOutputGenex clean-debug-graph build-Debug.ninja -t clean)
@@ -422,6 +432,13 @@ run_cmake_configure(ExcludeFromAll)
 include(${RunCMake_TEST_BINARY_DIR}/target_files.cmake)
 run_cmake_build(ExcludeFromAll all "" all:all)
 
+set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/ExternalProject-build)
+set(RunCMake_TEST_OPTIONS "-DCMAKE_CROSS_CONFIGS=all;-DCMAKE_DEFAULT_CONFIGS=Debug\\;Release")
+run_cmake_configure(ExternalProject)
+unset(RunCMake_TEST_OPTIONS)
+run_cmake_build(ExternalProject release-in-debug-graph "Debug" all:Release)
+run_cmake_build(ExternalProject debug-in-release-graph "Release" all:Debug)
+
 # FIXME Get this working
 #set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/AutoMocExecutable-build)
 #run_cmake_configure(AutoMocExecutable)
@@ -436,9 +453,14 @@ run_cmake_command(NoUnusedVariables ${CMAKE_COMMAND} ${CMAKE_CURRENT_LIST_DIR}
   "-DCMAKE_DEFAULT_BUILD_TYPE=Debug"
   "-DCMAKE_DEFAULT_CONFIGS=all"
   )
+unset(RunCMake_TEST_BINARY_DIR)
+
+set(RunCMake_TEST_OPTIONS "-DCMAKE_CONFIGURATION_TYPES=Debug\\;Release;-DCMAKE_CROSS_CONFIGS=all;-DCMAKE_EXPORT_COMPILE_COMMANDS=ON")
+run_cmake(CompileCommands)
+unset(RunCMake_TEST_OPTIONS)
 
 # CudaSimple uses separable compilation, which is currently only supported on NVCC.
-if(CMake_TEST_CUDA AND NOT CMake_TEST_CUDA STREQUAL "Clang")
+if(CMake_TEST_CUDA)
   set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/CudaSimple-build)
   run_cmake_configure(CudaSimple)
   include(${RunCMake_TEST_BINARY_DIR}/target_files.cmake)
@@ -446,14 +468,20 @@ if(CMake_TEST_CUDA AND NOT CMake_TEST_CUDA STREQUAL "Clang")
   run_ninja(CudaSimple all-clean build-Debug.ninja clean:Debug)
 endif()
 
-if(CMake_TEST_Qt5)
-  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/Qt5-build)
-  set(RunCMake_TEST_OPTIONS "-DCMAKE_CROSS_CONFIGS=all" "-DQt5Core_DIR=${Qt5Core_DIR}")
-  run_cmake_configure(Qt5)
+if(CMake_TEST_Qt_version)
+  set(QtX Qt${CMake_TEST_Qt_version})
+  set(RunCMake_TEST_BINARY_DIR ${RunCMake_BINARY_DIR}/QtX-build)
+  set(RunCMake_TEST_OPTIONS
+    "-DCMAKE_CROSS_CONFIGS=all"
+    "-Dwith_qt_version:STRING=${CMake_TEST_Qt_version}"
+    "-D${QtX}Core_DIR=${${QtX}Core_DIR}"
+    "-DCMAKE_PREFIX_PATH:STRING=${CMAKE_PREFIX_PATH}"
+  )
+  run_cmake_configure(QtX)
   unset(RunCMake_TEST_OPTIONS)
   include(${RunCMake_TEST_BINARY_DIR}/target_files.cmake)
-  run_cmake_build(Qt5 debug-in-release-graph Release exe:Debug)
-  if(CMAKE_TEST_Qt5Core_Version VERSION_GREATER_EQUAL 5.15.0)
-    run_ninja(Qt5 automoc-check build-Debug.ninja -t query exe_autogen/timestamp)
+  run_cmake_build(QtX debug-in-release-graph Release exe:Debug)
+  if(CMake_TEST_${QtX}Core_Version VERSION_GREATER_EQUAL 5.15.0)
+    run_ninja(QtX automoc-check build-Debug.ninja -t query exe_autogen/timestamp)
   endif()
 endif()

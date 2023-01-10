@@ -29,8 +29,8 @@ public:
 
   std::string const& GetRelativePathTopSource() const;
   std::string const& GetRelativePathTopBinary() const;
-  void SetRelativePathTopSource(std::string const& top);
-  void SetRelativePathTopBinary(std::string const& top);
+  void SetRelativePathTop(std::string const& topSource,
+                          std::string const& topBinary);
 
   enum OutputFormat
   {
@@ -88,13 +88,22 @@ public:
     Shell_Flag_IsUnix = (1 << 8),
 
     Shell_Flag_UnescapeNinjaConfiguration = (1 << 9),
+
+    Shell_Flag_IsResponse = (1 << 10)
   };
 
   std::string EscapeForShell(cm::string_view str, bool makeVars = false,
                              bool forEcho = false, bool useWatcomQuote = false,
-                             bool unescapeNinjaConfiguration = false) const;
+                             bool unescapeNinjaConfiguration = false,
+                             bool forResponse = false) const;
 
-  static std::string EscapeForCMake(cm::string_view str);
+  enum class WrapQuotes
+  {
+    Wrap,
+    NoWrap,
+  };
+  static std::string EscapeForCMake(cm::string_view str,
+                                    WrapQuotes wrapQuotes = WrapQuotes::Wrap);
 
   /** Compute an escaped version of the given argument for use in a
       windows shell.  */
@@ -129,7 +138,7 @@ private:
   static bool Shell_ArgumentNeedsQuotes(cm::string_view in, int flags);
   static std::string Shell_GetArgument(cm::string_view in, int flags);
 
-  bool LinkScriptShell;
+  bool LinkScriptShell = false;
 
   // The top-most directories for relative path conversion.  Both the
   // source and destination location of a relative path conversion
@@ -138,8 +147,17 @@ private:
   // safely by the build tools.
   std::string RelativePathTopSource;
   std::string RelativePathTopBinary;
+  enum class TopRelation
+  {
+    Separate,
+    BinInSrc,
+    SrcInBin,
+    InSource,
+  };
+  TopRelation RelativePathTopRelation = TopRelation::Separate;
   void ComputeRelativePathTopSource();
   void ComputeRelativePathTopBinary();
+  void ComputeRelativePathTopRelation();
   std::string MaybeRelativeTo(std::string const& local_path,
                               std::string const& remote_path) const;
 };

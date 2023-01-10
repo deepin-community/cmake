@@ -80,7 +80,7 @@ else()
       set(CMAKE_${lang}_COMPILE_OPTIONS_IPO "-flto")
     endif()
 
-    if(ANDROID AND NOT CMAKE_ANDROID_NDK_VERSION VERSION_GREATER_EQUAL "22")
+    if(ANDROID AND CMAKE_ANDROID_NDK_VERSION VERSION_LESS "22")
       # https://github.com/android-ndk/ndk/issues/242
       set(CMAKE_${lang}_LINK_OPTIONS_IPO "-fuse-ld=gold")
     endif()
@@ -114,6 +114,12 @@ else()
     endif()
     set(CMAKE_${lang}_COMPILE_OPTIONS_USE_PCH -Xclang -include-pch -Xclang <PCH_FILE> -Xclang -include -Xclang <PCH_HEADER>)
     set(CMAKE_${lang}_COMPILE_OPTIONS_CREATE_PCH -Xclang -emit-pch -Xclang -include -Xclang <PCH_HEADER> -x ${__pch_header_${lang}})
+
+    # '-fcolor-diagnostics' introduced since Clang 2.6
+    if(CMAKE_${lang}_COMPILER_VERSION VERSION_GREATER_EQUAL 2.6)
+      set(CMAKE_${lang}_COMPILE_OPTIONS_COLOR_DIAGNOSTICS "-fcolor-diagnostics")
+      set(CMAKE_${lang}_COMPILE_OPTIONS_COLOR_DIAGNOSTICS_OFF "-fno-color-diagnostics")
+    endif()
   endmacro()
 endif()
 
@@ -249,6 +255,7 @@ macro(__compiler_clang_cxx_standards lang)
         cxx_std_17
         cxx_std_20
         cxx_std_23
+        cxx_std_26
         )
       _record_compiler_features(${lang} "" CMAKE_${lang}_COMPILE_FEATURES)
     endmacro()

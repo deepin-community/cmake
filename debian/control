@@ -2,43 +2,34 @@ Source: cmake
 Section: devel
 Priority: optional
 Maintainer: Debian CMake Team <pkg-cmake-team@lists.alioth.debian.org>
-Uploaders: Lisandro Damián Nicanor Pérez Meyer <lisandro@debian.org>,
-           Felix Geyer <fgeyer@debian.org>,
-           Timo Röhling <roehling@debian.org>
-Build-Depends: debhelper-compat (= 13),
-               cmake <cross>,
-               freebsd-glue [kfreebsd-any],
-               libarchive-dev (>= 3.3.3) <!pkg.cmake.bootstrap>,
-               libcurl4-openssl-dev <!pkg.cmake.bootstrap> | libcurl-ssl-dev <!pkg.cmake.bootstrap>,
-               libexpat1-dev <!pkg.cmake.bootstrap>,
-               libjsoncpp-dev <!pkg.cmake.bootstrap>,
-               libncurses5-dev <!pkg.cmake.bootstrap !pkg.cmake.nogui>,
-               librhash-dev <!pkg.cmake.bootstrap>,
-               libssl-dev <pkg.cmake.bootstrap>,
-               libuv1-dev (>= 1.10) <!pkg.cmake.bootstrap>,
-               procps [!hurd-any],
-               python3-sphinx:native,
-               python3-sphinxcontrib.qthelp:native,
-               qtbase5-dev <!pkg.cmake.bootstrap !pkg.cmake.nogui>,
-               zlib1g-dev <!pkg.cmake.bootstrap>
+Uploaders:
+ Lisandro Damián Nicanor Pérez Meyer <lisandro@debian.org>,
+ Felix Geyer <fgeyer@debian.org>,
+ Timo Röhling <roehling@debian.org>,
+Build-Depends:
+ debhelper-compat (= 13),
+ cmake <cross>,
+ freebsd-glue [kfreebsd-any],
+ libarchive-dev (>= 3.3.3) <!pkg.cmake.bootstrap>,
+ libcurl4-openssl-dev <!pkg.cmake.bootstrap> | libcurl-ssl-dev <!pkg.cmake.bootstrap>,
+ libexpat1-dev <!pkg.cmake.bootstrap>,
+ libjsoncpp-dev <!pkg.cmake.bootstrap>,
+ libncurses5-dev <!pkg.cmake.bootstrap !pkg.cmake.nogui>,
+ librhash-dev <!pkg.cmake.bootstrap>,
+ libssl-dev <pkg.cmake.bootstrap>,
+ libuv1-dev (>= 1.10) <!pkg.cmake.bootstrap>,
+ procps [!hurd-any],
+ python3-sphinx:native,
+ python3-sphinxcontrib.qthelp:native,
+ qtbase5-dev <!pkg.cmake.bootstrap !pkg.cmake.nogui>,
+ zlib1g-dev <!pkg.cmake.bootstrap>,
 Build-Depends-Indep:
-               dh-elpa,
-               dh-sequence-sphinxdoc
+ dh-sequence-sphinxdoc,
 Rules-Requires-Root: no
-Standards-Version: 4.6.0
+Standards-Version: 4.6.1
 Vcs-Git: https://salsa.debian.org/cmake-team/cmake.git
 Vcs-Browser: https://salsa.debian.org/cmake-team/cmake
 Homepage: https://cmake.org/
-
-Package: cmake
-Architecture: any
-Multi-Arch: foreign
-Depends: ${misc:Depends},
-         ${shlibs:Depends},
-         cmake-data (= ${source:Version}),
-         procps [!hurd-any]
-Recommends: gcc, make
-Suggests: cmake-doc, ninja-build
 Description: cross-platform, open-source make system
  CMake is used to control the software compilation process using
  simple platform and compiler independent configuration files. CMake
@@ -47,19 +38,32 @@ Description: cross-platform, open-source make system
  is possible to support complex environments requiring system
  configuration, pre-processor generation, code generation, and template
  instantiation.
- .
- CMake was developed by Kitware as part of the NLM Insight
- Segmentation and Registration Toolkit project. The ASCI VIEWS project
- also provided support in the context of their parallel computation
- environment. Other sponsors include the Insight, VTK, and VXL open
- source software communities.
+
+Package: cmake
+Architecture: any
+Multi-Arch: foreign
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ cmake-data (= ${source:Version}),
+ procps [!hurd-any],
+Recommends: gcc, make
+Suggests:
+ cmake-doc,
+ cmake-format,
+ elpa-cmake-mode,
+ ninja-build,
+Description: ${source:Synopsis}
+ ${source:Extended-Description}
 
 Package: cmake-data
 Architecture: all
 Multi-Arch: foreign
-Depends: ${misc:Depends},
-         ${elpa:Depends}
+Depends:
+ ${misc:Depends},
 Description: CMake data files (modules, templates and documentation)
+ ${source:Extended-Description}
+ .
  This package provides CMake architecture independent data files (modules,
  templates, documentation etc.). Unless you have cmake installed, you probably
  do not need this package.
@@ -67,14 +71,12 @@ Description: CMake data files (modules, templates and documentation)
 Package: cmake-curses-gui
 Architecture: any
 Build-Profiles: <!pkg.cmake.bootstrap !pkg.cmake.nogui>
-Depends: ${misc:Depends},
-         ${shlibs:Depends},
-         cmake (= ${binary:Version})
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ cmake (= ${binary:Version}),
 Description: curses based user interface for CMake (ccmake)
- CMake is used to control the software compilation process using simple
- platform and compiler independent configuration files. CMake generates native
- makefiles and workspaces that can be used in the compiler environment of your
- choice.
+ ${source:Extended-Description}
  .
  This package provides the CMake curses interface. Project configuration
  settings may be specified interactively through this GUI. Brief instructions
@@ -84,15 +86,13 @@ Description: curses based user interface for CMake (ccmake)
 Package: cmake-qt-gui
 Architecture: any
 Build-Profiles: <!pkg.cmake.bootstrap !pkg.cmake.nogui>
-Depends: ${misc:Depends},
-         ${shlibs:Depends},
-         cmake (= ${binary:Version})
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends},
+ cmake (= ${binary:Version}),
 Provides: cmake-gui
 Description: Qt based user interface for CMake (cmake-gui)
- CMake is used to control the software compilation process using simple
- platform and compiler independent configuration files. CMake generates native
- makefiles and workspaces that can be used in the compiler environment of your
- choice.
+ ${source:Extended-Description}
  .
  This package provides the CMake Qt based GUI. Project configuration
  settings may be specified interactively. Brief instructions are provided at
@@ -104,16 +104,14 @@ Architecture: all
 Build-Profiles: <!pkg.cmake.bootstrap>
 Multi-Arch: foreign
 Section: doc
-Depends: ${misc:Depends},
-         ${sphinxdoc:Depends},
-         cmake-data (= ${source:Version})
+Depends:
+ ${misc:Depends},
+ ${sphinxdoc:Depends},
+ cmake-data (= ${source:Version}),
 Recommends: doc-base
 Suggests: cmake
 Description: extended documentation in various formats for CMake
- CMake is used to control the software compilation process using simple
- platform and compiler independent configuration files. CMake generates native
- makefiles and workspaces that can be used in the compiler environment of your
- choice.
+ ${source:Extended-Description}
  .
  This package provides additional documentation in various formats like HTML or
  plain text.

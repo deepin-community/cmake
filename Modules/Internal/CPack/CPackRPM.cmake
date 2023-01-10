@@ -625,8 +625,8 @@ function(cpack_rpm_debugsymbol_check INSTALL_FILES WORKING_DIR)
   endif()
 
   # With objdump we should check the debug symbols
-  find_program(OBJDUMP_EXECUTABLE objdump)
-  if(NOT OBJDUMP_EXECUTABLE)
+  find_program(CPACK_OBJDUMP_EXECUTABLE objdump)
+  if(NOT CPACK_OBJDUMP_EXECUTABLE)
     message(FATAL_ERROR "CPackRPM: objdump binary could not be found!"
       " Required for debuginfo packaging. See documentation of"
       " CPACK_RPM_DEBUGINFO_PACKAGE variable for details.")
@@ -649,7 +649,7 @@ function(cpack_rpm_debugsymbol_check INSTALL_FILES WORKING_DIR)
       continue()
     endif()
 
-    execute_process(COMMAND "${OBJDUMP_EXECUTABLE}" -h ${WORKING_DIR}/${F}
+    execute_process(COMMAND "${CPACK_OBJDUMP_EXECUTABLE}" -h ${WORKING_DIR}/${F}
                     WORKING_DIRECTORY "${CPACK_TOPLEVEL_DIRECTORY}"
                     RESULT_VARIABLE OBJDUMP_EXEC_RESULT
                     OUTPUT_VARIABLE OBJDUMP_OUT
@@ -790,7 +790,7 @@ function(cpack_rpm_variable_fallback OUTPUT_VAR_NAME)
   set(FALLBACK_VAR_NAMES ${ARGN})
 
   foreach(variable_name IN LISTS FALLBACK_VAR_NAMES)
-    if(${variable_name})
+    if(DEFINED ${variable_name})
       set(${OUTPUT_VAR_NAME} "${${variable_name}}" PARENT_SCOPE)
       break()
     endif()
@@ -1158,6 +1158,16 @@ function(cpack_rpm_generate_package)
       message("CPackRPM:Debug: User defined CPACK_RPM_SPEC_INSTALL_POST = ${CPACK_RPM_SPEC_INSTALL_POST}")
     endif()
     set(TMP_RPM_SPEC_INSTALL_POST "%define __spec_install_post ${CPACK_RPM_SPEC_INSTALL_POST}")
+  endif()
+
+  # CPACK_RPM_REQUIRES_EXCLUDE_FROM
+  # May be defined to keep the dependency generator from
+  # scanning specific files or directories for deps.
+  if(CPACK_RPM_REQUIRES_EXCLUDE_FROM)
+    if(CPACK_RPM_PACKAGE_DEBUG)
+      message("CPackRPM:Debug: User defined CPACK_RPM_REQUIRES_EXCLUDE_FROM = ${CPACK_RPM_REQUIRES_EXCLUDE_FROM}")
+    endif()
+    set(TMP_RPM_REQUIRES_EXCLUDE_FROM "%global __requires_exclude_from ${CPACK_RPM_REQUIRES_EXCLUDE_FROM}")
   endif()
 
   # CPACK_RPM_POST_INSTALL_SCRIPT_FILE (or CPACK_RPM_<COMPONENT>_POST_INSTALL_SCRIPT_FILE)
@@ -1648,6 +1658,7 @@ Vendor:         \@CPACK_RPM_PACKAGE_VENDOR\@
 \@FILE_NAME_DEFINE\@
 %define _unpackaged_files_terminate_build 0
 \@TMP_RPM_SPEC_INSTALL_POST\@
+\@TMP_RPM_REQUIRES_EXCLUDE_FROM\@
 \@CPACK_RPM_SPEC_MORE_DEFINE\@
 \@CPACK_RPM_COMPRESSION_TYPE_TMP\@
 
@@ -1782,6 +1793,7 @@ Vendor:         \@CPACK_RPM_PACKAGE_VENDOR\@
 \@FILE_NAME_DEFINE\@
 %define _unpackaged_files_terminate_build 0
 \@TMP_RPM_SPEC_INSTALL_POST\@
+\@TMP_RPM_REQUIRES_EXCLUDE_FROM\@
 \@CPACK_RPM_SPEC_MORE_DEFINE\@
 \@CPACK_RPM_COMPRESSION_TYPE_TMP\@
 

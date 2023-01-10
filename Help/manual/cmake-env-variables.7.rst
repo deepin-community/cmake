@@ -21,6 +21,8 @@ Environment Variables that Change Behavior
    :maxdepth: 1
 
    /envvar/CMAKE_PREFIX_PATH
+   /envvar/SSL_CERT_DIR
+   /envvar/SSL_CERT_FILE
 
 Environment Variables that Control the Build
 ============================================
@@ -28,14 +30,19 @@ Environment Variables that Control the Build
 .. toctree::
    :maxdepth: 1
 
+   /envvar/ADSP_ROOT
    /envvar/CMAKE_APPLE_SILICON_PROCESSOR
    /envvar/CMAKE_BUILD_PARALLEL_LEVEL
+   /envvar/CMAKE_BUILD_TYPE
+   /envvar/CMAKE_COLOR_DIAGNOSTICS
+   /envvar/CMAKE_CONFIGURATION_TYPES
    /envvar/CMAKE_CONFIG_TYPE
    /envvar/CMAKE_EXPORT_COMPILE_COMMANDS
    /envvar/CMAKE_GENERATOR
    /envvar/CMAKE_GENERATOR_INSTANCE
    /envvar/CMAKE_GENERATOR_PLATFORM
    /envvar/CMAKE_GENERATOR_TOOLSET
+   /envvar/CMAKE_INSTALL_MODE
    /envvar/CMAKE_LANG_COMPILER_LAUNCHER
    /envvar/CMAKE_LANG_LINKER_LAUNCHER
    /envvar/CMAKE_MSVCIDE_RUN_PATH
