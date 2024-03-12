@@ -107,33 +107,90 @@ The following variables may be set to control search behavior:
 
 ``ENV{PKG_CONFIG_PATH}``
   On UNIX-like systems, ``pkg-config`` is used to locate the system OpenSSL.
-  Set the ``PKG_CONFIG_PATH`` environment varialbe to look in alternate
+  Set the ``PKG_CONFIG_PATH`` environment variable to look in alternate
   locations.  Useful on multi-lib systems.
 #]=======================================================================]
 
 macro(_OpenSSL_test_and_find_dependencies ssl_library crypto_library)
-  if((CMAKE_SYSTEM_NAME STREQUAL "Linux") AND
+  unset(_OpenSSL_extra_static_deps)
+  if(UNIX AND
      (("${ssl_library}" MATCHES "\\${CMAKE_STATIC_LIBRARY_SUFFIX}$") OR
       ("${crypto_library}" MATCHES "\\${CMAKE_STATIC_LIBRARY_SUFFIX}$")))
     set(_OpenSSL_has_dependencies TRUE)
-    find_package(Threads)
+    unset(_OpenSSL_has_dependency_zlib)
+    if(OPENSSL_USE_STATIC_LIBS)
+      set(_OpenSSL_libs "${_OPENSSL_STATIC_LIBRARIES}")
+      set(_OpenSSL_ldflags_other "${_OPENSSL_STATIC_LDFLAGS_OTHER}")
+    else()
+      set(_OpenSSL_libs "${_OPENSSL_LIBRARIES}")
+      set(_OpenSSL_ldflags_other "${_OPENSSL_LDFLAGS_OTHER}")
+    endif()
+    if(_OpenSSL_libs)
+      unset(_OpenSSL_has_dependency_dl)
+      foreach(_OPENSSL_DEP_LIB IN LISTS _OpenSSL_libs)
+        if (_OPENSSL_DEP_LIB STREQUAL "ssl" OR _OPENSSL_DEP_LIB STREQUAL "crypto")
+          # ignoring: these are the targets
+        elseif(_OPENSSL_DEP_LIB STREQUAL CMAKE_DL_LIBS)
+          set(_OpenSSL_has_dependency_dl TRUE)
+        elseif(_OPENSSL_DEP_LIB STREQUAL "z")
+          find_package(ZLIB)
+          set(_OpenSSL_has_dependency_zlib TRUE)
+        else()
+          list(APPEND _OpenSSL_extra_static_deps "${_OPENSSL_DEP_LIB}")
+        endif()
+      endforeach()
+      unset(_OPENSSL_DEP_LIB)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+      set(_OpenSSL_has_dependency_dl TRUE)
+    endif()
+    if(_OpenSSL_ldflags_other)
+      unset(_OpenSSL_has_dependency_threads)
+      foreach(_OPENSSL_DEP_LDFLAG IN LISTS _OpenSSL_ldflags_other)
+        if (_OPENSSL_DEP_LDFLAG STREQUAL "-pthread")
+          set(_OpenSSL_has_dependency_threads TRUE)
+          find_package(Threads)
+        endif()
+      endforeach()
+      unset(_OPENSSL_DEP_LDFLAG)
+    elseif(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+      set(_OpenSSL_has_dependency_threads TRUE)
+      find_package(Threads)
+    endif()
+    unset(_OpenSSL_libs)
+    unset(_OpenSSL_ldflags_other)
   else()
     set(_OpenSSL_has_dependencies FALSE)
   endif()
 endmacro()
 
 function(_OpenSSL_add_dependencies libraries_var)
-  if(CMAKE_THREAD_LIBS_INIT)
+  if(_OpenSSL_has_dependency_zlib)
+    list(APPEND ${libraries_var} ${ZLIB_LIBRARY})
+  endif()
+  if(_OpenSSL_has_dependency_threads)
     list(APPEND ${libraries_var} ${CMAKE_THREAD_LIBS_INIT})
   endif()
-  list(APPEND ${libraries_var} ${CMAKE_DL_LIBS})
+  if(_OpenSSL_has_dependency_dl)
+    list(APPEND ${libraries_var} ${CMAKE_DL_LIBS})
+  endif()
+  list(APPEND ${libraries_var} ${_OpenSSL_extra_static_deps})
   set(${libraries_var} ${${libraries_var}} PARENT_SCOPE)
 endfunction()
 
 function(_OpenSSL_target_add_dependencies target)
   if(_OpenSSL_has_dependencies)
-    set_property( TARGET ${target} APPEND PROPERTY INTERFACE_LINK_LIBRARIES Threads::Threads )
-    set_property( TARGET ${target} APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${CMAKE_DL_LIBS} )
+    if(_OpenSSL_has_dependency_zlib)
+      set_property( TARGET ${target} APPEND PROPERTY INTERFACE_LINK_LIBRARIES ZLIB::ZLIB )
+    endif()
+    if(_OpenSSL_has_dependency_threads)
+      set_property( TARGET ${target} APPEND PROPERTY INTERFACE_LINK_LIBRARIES Threads::Threads)
+    endif()
+    if(_OpenSSL_has_dependency_dl)
+      set_property( TARGET ${target} APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${CMAKE_DL_LIBS} )
+    endif()
+    if(_OpenSSL_extra_static_deps)
+      set_property( TARGET ${target} APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${_OpenSSL_extra_static_deps})
+    endif()
   endif()
   if(WIN32 AND OPENSSL_USE_STATIC_LIBS)
     if(WINCE)
@@ -153,7 +210,7 @@ endif ()
 # Support preference of static libs by adjusting CMAKE_FIND_LIBRARY_SUFFIXES
 if(OPENSSL_USE_STATIC_LIBS)
   set(_openssl_ORIG_CMAKE_FIND_LIBRARY_SUFFIXES ${CMAKE_FIND_LIBRARY_SUFFIXES})
-  if(WIN32)
+  if(MSVC)
     set(CMAKE_FIND_LIBRARY_SUFFIXES .lib .a ${CMAKE_FIND_LIBRARY_SUFFIXES})
   else()
     set(CMAKE_FIND_LIBRARY_SUFFIXES .a )
@@ -173,13 +230,15 @@ else()
   set(_OPENSSL_FIND_PATH_SUFFIX "include")
 endif()
 
-if (WIN32)
+if (OPENSSL_ROOT_DIR OR NOT "$ENV{OPENSSL_ROOT_DIR}" STREQUAL "")
+  set(_OPENSSL_ROOT_HINTS HINTS ${OPENSSL_ROOT_DIR} ENV OPENSSL_ROOT_DIR)
+  set(_OPENSSL_ROOT_PATHS NO_DEFAULT_PATH)
+elseif (MSVC)
   # http://www.slproweb.com/products/Win32OpenSSL.html
   set(_OPENSSL_ROOT_HINTS
-    ${OPENSSL_ROOT_DIR}
+    HINTS
     "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (32-bit)_is1;Inno Setup: App Path]"
     "[HKEY_LOCAL_MACHINE\\SOFTWARE\\Microsoft\\Windows\\CurrentVersion\\Uninstall\\OpenSSL (64-bit)_is1;Inno Setup: App Path]"
-    ENV OPENSSL_ROOT_DIR
     )
 
   if("${CMAKE_SIZEOF_VOID_P}" STREQUAL "8")
@@ -198,6 +257,7 @@ if (WIN32)
   endif()
 
   set(_OPENSSL_ROOT_PATHS
+    PATHS
     "${_programfiles}/OpenSSL"
     "${_programfiles}/OpenSSL-${_arch}"
     "C:/OpenSSL/"
@@ -205,16 +265,11 @@ if (WIN32)
     )
   unset(_programfiles)
   unset(_arch)
-else ()
-  set(_OPENSSL_ROOT_HINTS
-    ${OPENSSL_ROOT_DIR}
-    ENV OPENSSL_ROOT_DIR
-    )
 endif ()
 
 set(_OPENSSL_ROOT_HINTS_AND_PATHS
-    HINTS ${_OPENSSL_ROOT_HINTS}
-    PATHS ${_OPENSSL_ROOT_PATHS}
+    ${_OPENSSL_ROOT_HINTS}
+    ${_OPENSSL_ROOT_PATHS}
     )
 
 find_path(OPENSSL_INCLUDE_DIR
@@ -719,3 +774,7 @@ endif()
 
 unset(_OPENSSL_FIND_PATH_SUFFIX)
 unset(_OPENSSL_NAME_POSTFIX)
+unset(_OpenSSL_extra_static_deps)
+unset(_OpenSSL_has_dependency_dl)
+unset(_OpenSSL_has_dependency_threads)
+unset(_OpenSSL_has_dependency_zlib)

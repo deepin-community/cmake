@@ -66,6 +66,12 @@ Each ``<item>`` may be:
   :ref:`usage requirement <Target Usage Requirements>`.  This has the same
   effect as passing the framework directory as an include directory.
 
+  .. versionadded:: 3.28
+
+    The library file may point to a ``.xcframework`` folder on Apple platforms.
+    If it does, the target will get the selected library's ``Headers``
+    directory as a usage requirement.
+
   .. versionadded:: 3.8
     On :ref:`Visual Studio Generators` for VS 2010 and above, library files
     ending in ``.targets`` will be treated as MSBuild targets files and
@@ -293,8 +299,8 @@ will be included in the link too.
 
 .. _`Linking Object Libraries via $<TARGET_OBJECTS>`:
 
-Linking Object Libraries via $<TARGET_OBJECTS>
-""""""""""""""""""""""""""""""""""""""""""""""
+Linking Object Libraries via ``$<TARGET_OBJECTS>``
+""""""""""""""""""""""""""""""""""""""""""""""""""
 
 .. versionadded:: 3.21
 
@@ -407,3 +413,15 @@ Creating Relocatable Packages
 
 .. |INTERFACE_PROPERTY_LINK| replace:: :prop_tgt:`INTERFACE_LINK_LIBRARIES`
 .. include:: /include/INTERFACE_LINK_LIBRARIES_WARNING.txt
+
+See Also
+^^^^^^^^
+
+* :command:`target_compile_definitions`
+* :command:`target_compile_features`
+* :command:`target_compile_options`
+* :command:`target_include_directories`
+* :command:`target_link_directories`
+* :command:`target_link_options`
+* :command:`target_precompile_headers`
+* :command:`target_sources`

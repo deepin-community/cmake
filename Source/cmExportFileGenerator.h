@@ -143,7 +143,8 @@ protected:
   void PopulateIncludeDirectoriesInterface(
     cmGeneratorTarget const* target,
     cmGeneratorExpression::PreprocessContext preprocessRule,
-    ImportPropertyMap& properties, cmTargetExport const& te);
+    ImportPropertyMap& properties, cmTargetExport const& te,
+    std::string& includesDestinationDirs);
   void PopulateSourcesInterface(
     cmGeneratorTarget const* target,
     cmGeneratorExpression::PreprocessContext preprocessRule,
@@ -175,6 +176,10 @@ protected:
   virtual void GenerateRequiredCMakeVersion(std::ostream& os,
                                             const char* versionString);
 
+  bool PopulateCxxModuleExportProperties(
+    cmGeneratorTarget const* gte, ImportPropertyMap& properties,
+    cmGeneratorExpression::PreprocessContext ctx,
+    std::string const& includesDestinationDirs, std::string& errorMessage);
   bool PopulateExportProperties(cmGeneratorTarget const* gte,
                                 ImportPropertyMap& properties,
                                 std::string& errorMessage);
@@ -182,7 +187,7 @@ protected:
   void GenerateTargetFileSets(cmGeneratorTarget* gte, std::ostream& os,
                               cmTargetExport* te = nullptr);
 
-  void GenerateCxxModuleInformation(std::ostream& os);
+  void GenerateCxxModuleInformation(std::string const& name, std::ostream& os);
 
   virtual std::string GetFileSetDirectories(cmGeneratorTarget* gte,
                                             cmFileSet* fileSet,
@@ -230,5 +235,6 @@ private:
                                      const std::string& config) = 0;
 
   virtual std::string GetCxxModulesDirectory() const = 0;
-  virtual void GenerateCxxModuleConfigInformation(std::ostream& os) const = 0;
+  virtual void GenerateCxxModuleConfigInformation(std::string const&,
+                                                  std::ostream& os) const = 0;
 };

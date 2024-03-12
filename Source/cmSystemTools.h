@@ -22,7 +22,6 @@
 #include "cmsys/Status.hxx"      // IWYU pragma: export
 #include "cmsys/SystemTools.hxx" // IWYU pragma: export
 
-#include "cmCryptoHash.h"
 #include "cmDuration.h"
 #include "cmProcessOutput.h"
 
@@ -111,6 +110,9 @@ public:
   //! Return true if the path is a framework
   static bool IsPathToFramework(const std::string& path);
 
+  //! Return true if the path is a xcframework
+  static bool IsPathToXcFramework(const std::string& path);
+
   //! Return true if the path is a macOS non-framework shared library (aka
   //! .dylib)
   static bool IsPathToMacOSSharedLibrary(const std::string& path);
@@ -149,6 +151,11 @@ public:
     Always,
     OnlyIfDifferent,
   };
+  enum class CopyInputRecent
+  {
+    No,
+    Yes,
+  };
   enum class CopyResult
   {
     Success,
@@ -177,10 +184,9 @@ public:
                                          const mode_t* mode = nullptr);
 
   /** Copy a file. */
-  static bool CopySingleFile(const std::string& oldname,
-                             const std::string& newname);
   static CopyResult CopySingleFile(std::string const& oldname,
                                    std::string const& newname, CopyWhen when,
+                                   CopyInputRecent inputRecent,
                                    std::string* err = nullptr);
 
   enum class Replace
@@ -206,20 +212,6 @@ public:
   //! Rename a file if contents are different, delete the source otherwise
   static void MoveFileIfDifferent(const std::string& source,
                                   const std::string& destination);
-
-#ifndef CMAKE_BOOTSTRAP
-  //! Compute the hash of a file
-  static std::string ComputeFileHash(const std::string& source,
-                                     cmCryptoHash::Algo algo);
-
-  /** Compute the md5sum of a string.  */
-  static std::string ComputeStringMD5(const std::string& input);
-
-#  ifdef _WIN32
-  //! Get the SHA thumbprint for a certificate file
-  static std::string ComputeCertificateThumbprint(const std::string& source);
-#  endif
-#endif
 
   /**
    * Run a single executable command
@@ -298,7 +290,7 @@ public:
     std::vector<std::string>::const_iterator argBeg,
     std::vector<std::string>::const_iterator argEnd);
 
-  static size_t CalculateCommandLineLengthLimit();
+  static std::size_t CalculateCommandLineLengthLimit();
 
   static void DisableRunCommandOutput() { s_DisableRunCommandOutput = true; }
   static void EnableRunCommandOutput() { s_DisableRunCommandOutput = false; }
@@ -394,6 +386,9 @@ public:
    */
   static std::string RelativeIfUnder(std::string const& top,
                                      std::string const& in);
+
+  static cm::optional<std::string> GetEnvVar(std::string const& var);
+  static std::vector<std::string> SplitEnvPath(std::string const& value);
 
 #ifndef CMAKE_BOOTSTRAP
   /** Remove an environment variable */

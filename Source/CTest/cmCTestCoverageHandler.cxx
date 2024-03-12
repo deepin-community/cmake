@@ -9,7 +9,9 @@
 #include <cstring>
 #include <iomanip>
 #include <iterator>
+#include <ratio>
 #include <sstream>
+#include <type_traits>
 #include <utility>
 
 #include <cmext/algorithm>
@@ -73,6 +75,7 @@ public:
   bool StartProcess()
   {
     std::vector<const char*> args;
+    args.reserve(this->CommandLineStrings.size());
     for (std::string const& cl : this->CommandLineStrings) {
       args.push_back(cl.c_str());
     }

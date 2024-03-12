@@ -15,7 +15,7 @@
 #include <cm/optional>
 
 #include "cmAlgorithms.h"
-#include "cmFileSet.h"
+#include "cmListFileCache.h"
 #include "cmPolicies.h"
 #include "cmStateTypes.h"
 #include "cmStringAlgorithms.h"
@@ -23,20 +23,16 @@
 #include "cmValue.h"
 
 class cmCustomCommand;
+class cmFileSet;
 class cmGlobalGenerator;
 class cmInstallTargetGenerator;
-class cmListFileBacktrace;
-class cmListFileContext;
 class cmMakefile;
 class cmPropertyMap;
 class cmSourceFile;
 class cmTargetExport;
 class cmTargetInternals;
 
-template <typename T>
-class BT;
-template <typename T>
-class BTs;
+enum class cmFileSetVisibility;
 
 /** \class cmTarget
  * \brief Represent a library or executable target loaded from a makefile.
@@ -46,11 +42,12 @@ class BTs;
 class cmTarget
 {
 public:
-  enum Visibility
+  enum class Visibility
   {
-    VisibilityNormal,
-    VisibilityImported,
-    VisibilityImportedGlobally
+    Normal,
+    Generated,
+    Imported,
+    ImportedGlobally,
   };
 
   enum class PerConfig
@@ -173,14 +170,17 @@ public:
    * commands. It is not a full path nor does it have an extension.
    */
   void AddUtility(std::string const& name, bool cross,
-                  cmMakefile* mf = nullptr);
+                  cmMakefile const* mf = nullptr);
   void AddUtility(BT<std::pair<std::string, bool>> util);
   //! Get the utilities used by this target
   std::set<BT<std::pair<std::string, bool>>> const& GetUtilities() const;
 
   //! Set/Get a property of this target file
-  void SetProperty(const std::string& prop, const char* value);
   void SetProperty(const std::string& prop, cmValue value);
+  void SetProperty(const std::string& prop, std::nullptr_t)
+  {
+    this->SetProperty(prop, cmValue{ nullptr });
+  }
   void SetProperty(const std::string& prop, const std::string& value)
   {
     this->SetProperty(prop, cmValue(value));
@@ -204,10 +204,15 @@ public:
 
   //! Return whether or not we are targeting AIX.
   bool IsAIX() const;
+  //! Return whether or not we are targeting Apple.
+  bool IsApple() const;
 
+  bool IsNormal() const;
+  bool IsSynthetic() const;
   bool IsImported() const;
   bool IsImportedGloballyVisible() const;
   bool IsPerConfig() const;
+  bool IsRuntimeBinary() const;
   bool CanCompileSources() const;
 
   bool GetMappedConfig(std::string const& desired_config, cmValue& loc,
@@ -215,6 +220,10 @@ public:
 
   //! Return whether this target is an executable with symbol exports enabled.
   bool IsExecutableWithExports() const;
+
+  //! Return whether this target is a shared library with symbol exports
+  //! enabled.
+  bool IsSharedLibraryWithExports() const;
 
   //! Return whether this target is a shared library Framework on Apple.
   bool IsFrameworkOnApple() const;
@@ -282,13 +291,15 @@ public:
   cmBTStringRange GetLinkInterfaceDirectEntries() const;
   cmBTStringRange GetLinkInterfaceDirectExcludeEntries() const;
 
+  void CopyPolicyStatuses(cmTarget const* tgt);
+  void CopyImportedCxxModulesEntries(cmTarget const* tgt);
+  void CopyImportedCxxModulesProperties(cmTarget const* tgt);
+
   cmBTStringRange GetHeaderSetsEntries() const;
   cmBTStringRange GetCxxModuleSetsEntries() const;
-  cmBTStringRange GetCxxModuleHeaderSetsEntries() const;
 
   cmBTStringRange GetInterfaceHeaderSetsEntries() const;
   cmBTStringRange GetInterfaceCxxModuleSetsEntries() const;
-  cmBTStringRange GetInterfaceCxxModuleHeaderSetsEntries() const;
 
   std::string ImportedGetFullPath(const std::string& config,
                                   cmStateEnums::ArtifactType artifact) const;
@@ -309,6 +320,8 @@ public:
 
   static std::string GetFileSetsPropertyName(const std::string& type);
   static std::string GetInterfaceFileSetsPropertyName(const std::string& type);
+
+  bool HasFileSets() const;
 
 private:
   template <typename ValueType>

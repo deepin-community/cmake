@@ -6,8 +6,11 @@
 #include <memory>
 #include <ostream>
 #include <set>
+#include <type_traits>
 #include <utility>
 #include <vector>
+
+#include <cm/optional>
 
 #include "cmCustomCommand.h"
 #include "cmCustomCommandGenerator.h"
@@ -15,6 +18,7 @@
 #include "cmGeneratorTarget.h"
 #include "cmGlobalGhsMultiGenerator.h"
 #include "cmLinkLineComputer.h" // IWYU pragma: keep
+#include "cmList.h"
 #include "cmLocalGenerator.h"
 #include "cmLocalGhsMultiGenerator.h"
 #include "cmMakefile.h"
@@ -411,9 +415,10 @@ void cmGhsMultiTargetGenerator::WriteCustomCommandsHelper(
   cmdLines.push_back("@echo off");
 #endif
   // Echo the custom command's comment text.
-  const char* comment = ccg.GetComment();
-  if (comment && *comment) {
-    std::string echocmd = cmStrCat("echo ", comment);
+  if (cm::optional<std::string> comment = ccg.GetComment()) {
+    std::string escapedComment = this->LocalGenerator->EscapeForShell(
+      *comment, ccg.GetCC().GetEscapeAllowMakeVars());
+    std::string echocmd = cmStrCat("echo ", escapedComment);
     cmdLines.push_back(std::move(echocmd));
   }
 
@@ -483,7 +488,7 @@ void cmGhsMultiTargetGenerator::WriteSourceProperty(
 {
   cmValue prop = sf->GetProperty(propName);
   if (prop) {
-    std::vector<std::string> list = cmExpandedList(*prop);
+    cmList list{ *prop };
     for (const std::string& p : list) {
       fout << "    " << propFlag << p << '\n';
     }

@@ -9,24 +9,9 @@ Enable languages (CXX/C/OBJC/OBJCXX/Fortran/etc)
 
 Enables support for the named languages in CMake.  This is the same as
 the :command:`project` command but does not create any of the extra
-variables that are created by the project command.  Example languages
-are ``CXX``, ``C``, ``CUDA``, ``OBJC``, ``OBJCXX``, ``Fortran``,
-``HIP``, ``ISPC``, and ``ASM``.
+variables that are created by the project command.
 
-.. versionadded:: 3.8
-  Added ``CUDA`` support.
-
-.. versionadded:: 3.16
-  Added ``OBJC`` and ``OBJCXX`` support.
-
-.. versionadded:: 3.18
-  Added ``ISPC`` support.
-
-.. versionadded:: 3.21
-  Added ``HIP`` support.
-
-If enabling ``ASM``, enable it last so that CMake can check whether
-compilers for other languages like ``C`` work for assembly too.
+.. include:: SUPPORTED_LANGUAGES.txt
 
 This command must be called in file scope, not in a function call.
 Furthermore, it must be called in the highest directory common to all

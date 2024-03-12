@@ -29,7 +29,7 @@ endif()
 # Pick a module .def file with the properly mangled symbol name.
 set(world_def "")
 if(WIN32 AND NOT CYGWIN)
-  if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU|LCC")
+  if(CMAKE_Fortran_COMPILER_ID MATCHES "GNU|LCC|LLVMFlang")
     set(world_def world_gnu.def)
   elseif(CMAKE_Fortran_COMPILER_ID MATCHES "Intel" OR
       CMAKE_GENERATOR MATCHES "Visual Studio") # Intel plugin
@@ -49,7 +49,7 @@ function(test_fortran_c_interface_module)
   FortranCInterface_VERIFY()
   FortranCInterface_VERIFY(CXX)
   if(CMAKE_Fortran_COMPILER_SUPPORTS_F90)
-    if(NOT CMAKE_Fortran_COMPILER_ID MATCHES "SunPro|PathScale|Absoft|Fujitsu")
+    if(NOT CMAKE_Fortran_COMPILER_ID MATCHES "SunPro|PathScale|Absoft|Fujitsu|LCC")
       set(module_expected 1)
     endif()
     if(FortranCInterface_MODULE_FOUND OR module_expected)

@@ -54,10 +54,7 @@ The options are:
   to support consumers using CMake versions older than 2.8.12.
 
 ``CXX_MODULES_DIRECTORY <directory>``
-
-  .. note ::
-
-    Experimental. Gated by ``CMAKE_EXPERIMENTAL_CXX_MODULE_CMAKE_API``
+  .. versionadded:: 3.28
 
   Export C++ module properties to files under the given directory. Each file
   will be named according to the target's export name (without any namespace).
@@ -77,6 +74,10 @@ to automatically export the same targets from the build tree as
   no object files available to clients.  This is sufficient to satisfy
   transitive usage requirements of other targets that link to the
   object libraries in their implementation.
+
+This command exports all :ref:`build configurations` from the build tree.
+See the :variable:`CMAKE_MAP_IMPORTED_CONFIG_<CONFIG>` variable to map
+configurations of dependent projects to the exported configurations.
 
 Exporting Targets to Android.mk
 """""""""""""""""""""""""""""""

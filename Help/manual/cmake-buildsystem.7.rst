@@ -37,6 +37,8 @@ is defined as an executable formed by compiling and linking ``zipapp.cpp``.
 When linking the ``zipapp`` executable, the ``archive`` static library is
 linked in.
 
+.. _`Binary Executables`:
+
 Binary Executables
 ------------------
 
@@ -99,7 +101,7 @@ target property to create an macOS or iOS Framework Bundle.
 A library with the ``FRAMEWORK`` target property should also set the
 :prop_tgt:`FRAMEWORK_VERSION` target property.  This property is typically
 set to the value of "A" by macOS conventions.
-The ``MACOSX_FRAMEWORK_IDENTIFIER`` sets ``CFBundleIdentifier`` key
+The ``MACOSX_FRAMEWORK_IDENTIFIER`` sets the ``CFBundleIdentifier`` key
 and it uniquely identifies the bundle.
 
 .. code-block:: cmake
@@ -119,7 +121,7 @@ Object Libraries
 The ``OBJECT`` library type defines a non-archival collection of object files
 resulting from compiling the given source files.  The object files collection
 may be used as source inputs to other targets by using the syntax
-``$<TARGET_OBJECTS:name>``.  This is a
+:genex:`$<TARGET_OBJECTS:name>`.  This is a
 :manual:`generator expression <cmake-generator-expressions(7)>` that can be
 used to supply the ``OBJECT`` library content to other targets:
 
@@ -672,14 +674,14 @@ This is equivalent to appending ``${CMAKE_INSTALL_PREFIX}/include`` to the
 
 When the :prop_tgt:`INTERFACE_INCLUDE_DIRECTORIES` of an
 :ref:`imported target <Imported targets>` is consumed, the entries in the
-property are treated as ``SYSTEM`` include directories, as if they were
-listed in the :prop_tgt:`INTERFACE_SYSTEM_INCLUDE_DIRECTORIES` of the
-dependency. This can result in omission of compiler warnings for headers
-found in those directories.  This behavior for :ref:`imported targets` may
-be controlled by setting the :prop_tgt:`NO_SYSTEM_FROM_IMPORTED` target
-property on the *consumers* of imported targets, or by setting the
-:prop_tgt:`IMPORTED_NO_SYSTEM` target property on the imported targets
-themselves.
+property may be treated as system include directories.  The effects of that
+are toolchain-dependent, but one common effect is to omit compiler warnings
+for headers found in those directories.  The :prop_tgt:`SYSTEM` property of
+the installed target determines this behavior (see the
+:prop_tgt:`EXPORT_NO_SYSTEM` property for how to modify the installed value
+for a target).  It is also possible to change how consumers interpret the
+system behavior of consumed imported targets by setting the
+:prop_tgt:`NO_SYSTEM_FROM_IMPORTED` target property on the *consumer*.
 
 If a binary target is linked transitively to a macOS :prop_tgt:`FRAMEWORK`, the
 ``Headers`` directory of the framework is also treated as a usage requirement.
@@ -797,6 +799,10 @@ An *archive* output artifact of a buildsystem target may be:
   created by the :command:`add_executable` command when its
   :prop_tgt:`ENABLE_EXPORTS` target property is set.
 
+* On macOS: the linker import file (e.g. ``.tbd``) of a shared library target
+  created by the :command:`add_library` command with the ``SHARED`` option and
+  when its :prop_tgt:`ENABLE_EXPORTS` target property is set.
+
 The :prop_tgt:`ARCHIVE_OUTPUT_DIRECTORY` and :prop_tgt:`ARCHIVE_OUTPUT_NAME`
 target properties may be used to control archive output artifact locations
 and names in the build tree.
@@ -854,7 +860,7 @@ the generator used.  For example:
 
 In the presence of :prop_tgt:`IMPORTED` targets, the content of
 :prop_tgt:`MAP_IMPORTED_CONFIG_DEBUG <MAP_IMPORTED_CONFIG_<CONFIG>>` is also
-accounted for by the above ``$<CONFIG:Debug>`` expression.
+accounted for by the above :genex:`$<CONFIG:Debug>` expression.
 
 
 Case Sensitivity
@@ -862,7 +868,7 @@ Case Sensitivity
 
 :variable:`CMAKE_BUILD_TYPE` and :variable:`CMAKE_CONFIGURATION_TYPES` are
 just like other variables in that any string comparisons made with their
-values will be case-sensitive.  The ``$<CONFIG>`` generator expression also
+values will be case-sensitive.  The :genex:`$<CONFIG>` generator expression also
 preserves the casing of the configuration as set by the user or CMake defaults.
 For example:
 
@@ -887,7 +893,7 @@ For example:
 
 In contrast, CMake treats the configuration type case-insensitively when
 using it internally in places that modify behavior based on the configuration.
-For example, the ``$<CONFIG:Debug>`` generator expression will evaluate to 1
+For example, the :genex:`$<CONFIG:Debug>` generator expression will evaluate to 1
 for a configuration of not only ``Debug``, but also ``DEBUG``, ``debug`` or
 even ``DeBuG``.  Therefore, you can specify configuration types in
 :variable:`CMAKE_BUILD_TYPE` and :variable:`CMAKE_CONFIGURATION_TYPES` with
@@ -1049,7 +1055,7 @@ them to a header set using the :command:`target_sources` command:
 
   add_library(Eigen INTERFACE)
 
-  target_sources(Eigen INTERFACE
+  target_sources(Eigen PUBLIC
     FILE_SET HEADERS
       BASE_DIRS src
       FILES src/eigen.h src/vector.h src/matrix.h

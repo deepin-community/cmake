@@ -4,7 +4,7 @@
 # Originally it was a macro in the root `CMakeLists.txt` with the comment
 # "Simply to improve readability...".
 # However, as part of the modernization refactoring it was moved into a
-# separate file cuz adding library alises wasn't possible inside the
+# separate file cuz adding library aliases wasn't possible inside the
 # macro.
 #-----------------------------------------------------------------------
 
@@ -54,7 +54,6 @@ if(BUILD_TESTING)
   CMAKE_SET_TARGET_FOLDER(${KWSYS_NAMESPACE}TestProcess "${kwsys_folder}")
   CMAKE_SET_TARGET_FOLDER(${KWSYS_NAMESPACE}TestsC "${kwsys_folder}")
   CMAKE_SET_TARGET_FOLDER(${KWSYS_NAMESPACE}TestsCxx "${kwsys_folder}")
-  CMAKE_SET_TARGET_FOLDER(${KWSYS_NAMESPACE}TestSharedForward "${kwsys_folder}")
 endif()
 
 #---------------------------------------------------------------------
@@ -171,7 +170,7 @@ else()
   CMAKE_SET_TARGET_FOLDER(cmcurl "Utilities/3rdParty")
   CMAKE_SET_TARGET_FOLDER(LIBCURL "Utilities/3rdParty")
   if(NOT CMAKE_USE_SYSTEM_NGHTTP2)
-    # Configure after curl to re-use some check results.
+    # Configure after curl to reuse some check results.
     add_subdirectory(Utilities/cmnghttp2)
     CMAKE_SET_TARGET_FOLDER(cmnghttp2 "Utilities/3rdParty")
   endif()
@@ -280,7 +279,7 @@ else()
   set(ENABLE_LIBXML2 OFF)
   set(ENABLE_EXPAT OFF)
   set(ENABLE_PCREPOSIX OFF)
-  set(ENABLE_LibGCC OFF)
+  set(ENABLE_LIBGCC OFF)
   set(ENABLE_CNG OFF)
   set(ENABLE_TAR OFF)
   set(ENABLE_TAR_SHARED OFF)
@@ -375,5 +374,21 @@ if(BUILD_CursesDialog)
     add_subdirectory(Source/CursesDialog/form)
   elseif(NOT CURSES_FORM_LIBRARY)
     message(FATAL_ERROR "CMAKE_USE_SYSTEM_FORM in ON but CURSES_FORM_LIBRARY is not set!")
+  endif()
+endif()
+
+#---------------------------------------------------------------------
+# Build cppdap library.
+if(CMake_ENABLE_DEBUGGER)
+  if(CMAKE_USE_SYSTEM_CPPDAP)
+    find_package(cppdap CONFIG)
+    if(NOT cppdap_FOUND)
+      message(FATAL_ERROR
+        "CMAKE_USE_SYSTEM_CPPDAP is ON but a cppdap is not found!")
+    endif()
+  else()
+    add_subdirectory(Utilities/cmcppdap)
+    add_library(cppdap::cppdap ALIAS cmcppdap)
+    CMAKE_SET_TARGET_FOLDER(cppdap "Utilities/3rdParty")
   endif()
 endif()

@@ -23,6 +23,12 @@ of files within the API directory.  API file layout versioning is
 orthogonal to the versioning of `Object Kinds`_ used in replies.
 This version of CMake supports only one API version, `API v1`_.
 
+.. versionadded:: 3.27
+  Projects may also submit queries for the current run using the
+  :command:`cmake_file_api` command.
+
+.. _`file-api v1`:
+
 API v1
 ======
 
@@ -258,8 +264,8 @@ The members are:
 
   ``paths``
     A JSON object specifying paths to things that come with CMake.
-    It has members for ``cmake``, ``ctest``, and ``cpack`` whose values
-    are JSON strings specifying the absolute path to each tool,
+    It has members for :program:`cmake`, :program:`ctest`, and :program:`cpack`
+    whose values are JSON strings specifying the absolute path to each tool,
     represented with forward slashes.  It also has a ``root`` member for
     the absolute path to the directory containing CMake resources like the
     ``Modules/`` directory (see :variable:`CMAKE_ROOT`).
@@ -371,7 +377,7 @@ v1 Reply Files
 Reply files containing specific `Object Kinds`_ are written by CMake.
 The names of these files are unspecified and must not be interpreted
 by clients.  Clients must first read the `v1 Reply Index File`_ and
-and follow references to the names of the desired response objects.
+follow references to the names of the desired response objects.
 
 Reply files (including the index file) will never be replaced by
 files of the same name but different content.  This allows a client
@@ -425,7 +431,7 @@ Version 1 does not exist to avoid confusion with that from
 
   {
     "kind": "codemodel",
-    "version": { "major": 2, "minor": 4 },
+    "version": { "major": 2, "minor": 6 },
     "paths": {
       "source": "/path/to/top-level-source-dir",
       "build": "/path/to/top-level-build-dir"
@@ -1071,6 +1077,29 @@ with members:
     available.  The value is an unsigned integer 0-based index into
     the ``backtraceGraph`` member's ``nodes`` array.
 
+``fileSets``
+  A JSON array of entries corresponding to the target's file sets. Each entry
+  is a JSON object with members:
+
+  ``name``
+    A string specifying the name of the file set.
+
+  ``type``
+    A string specifying the type of the file set.  See
+    :command:`target_sources` supported file set types.
+
+  ``visibility``
+    A string specifying the visibility of the file set; one of ``PUBLIC``,
+    ``PRIVATE``, or ``INTERFACE``.
+
+  ``baseDirectories``
+    A JSON array of strings, each specifying a base directory containing
+    sources in the file set.  If the directory is inside the top-level source
+    directory then the path is specified relative to that directory.
+    Otherwise the path is absolute.
+
+  This field was added in codemodel version 2.5.
+
 ``sources``
   A JSON array of entries corresponding to the target's source files.
   Each entry is a JSON object with members:
@@ -1095,6 +1124,13 @@ with members:
   ``isGenerated``
     Optional member that is present with boolean value ``true`` if
     the source is :prop_sf:`GENERATED`.
+
+  ``fileSetIndex``
+    Optional member that is present when the source is part of a file set.
+    The value is an unsigned integer 0-based index into the ``fileSets``
+    array.
+
+    This field was added in codemodel version 2.5.
 
   ``backtrace``
     Optional member that is present when a CMake language backtrace to
@@ -1183,6 +1219,28 @@ with members:
       an unsigned integer 0-based index into the ``backtraceGraph``
       member's ``nodes`` array.
 
+  ``frameworks``
+    Optional member that is present when, on Apple platforms, there are
+    frameworks. The value is a JSON array with an entry for each directory.
+    Each entry is a JSON object with members:
+
+    ``path``
+      A string specifying the path to the framework directory,
+      represented with forward slashes.
+
+    ``isSystem``
+      Optional member that is present with boolean value ``true`` if
+      the framework is marked as a system one.
+
+    ``backtrace``
+      Optional member that is present when a CMake language backtrace to
+      the :command:`target_link_libraries` or other command invocation
+      that added this framework is available.  The value is
+      an unsigned integer 0-based index into the ``backtraceGraph``
+      member's ``nodes`` array.
+
+    This field was added in codemodel version 2.6.
+
   ``precompileHeaders``
     Optional member that is present when :command:`target_precompile_headers`
     or other command invocations set :prop_tgt:`PRECOMPILE_HEADERS` on the
@@ -1269,6 +1327,45 @@ elsewhere in the containing object.  The backtrace graph object members are:
   with forward slashes.  If the file is inside the top-level source
   directory then the path is specified relative to that directory.
   Otherwise the path is absolute.
+
+.. _`file-api configureLog`:
+
+Object Kind "configureLog"
+--------------------------
+
+The ``configureLog`` object kind describes the location and contents of
+a :manual:`cmake-configure-log(7)` file.
+
+There is only one ``configureLog`` object major version, version 1.
+
+"configureLog" version 1
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+``configureLog`` object version 1 is a JSON object:
+
+.. code-block:: json
+
+  {
+    "kind": "configureLog",
+    "version": { "major": 1, "minor": 0 },
+    "path": "/path/to/top-level-build-dir/CMakeFiles/CMakeConfigureLog.yaml",
+    "eventKindNames": [ "try_compile-v1", "try_run-v1" ]
+  }
+
+The members specific to ``configureLog`` objects are:
+
+``path``
+  A string specifying the path to the configure log file.
+  Clients must read the log file from this path, which may be
+  different than the path documented by :manual:`cmake-configure-log(7)`.
+  The log file may not exist if no events are logged.
+
+``eventKindNames``
+  A JSON array whose entries are each a JSON string naming one
+  of the :manual:`cmake-configure-log(7)` versioned event kinds.
+  At most one version of each configure log event kind will be listed.
+  Although the configure log may contain other (versioned) event kinds,
+  clients must ignore those that are not listed in this field.
 
 Object Kind "cache"
 -------------------

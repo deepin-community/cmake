@@ -36,14 +36,17 @@ macro(__compiler_ibmclang lang)
   set(CMAKE_${lang}_LINKER_WRAPPER_FLAG "-Xlinker" " ")
   set(CMAKE_${lang}_LINKER_WRAPPER_FLAG_SEP)
 
-  if(CMAKE_${lang}_COMPILER_TARGET)
+  if(CMAKE_${lang}_COMPILER_TARGET AND "${lang}" STREQUAL "CXX")
     list(APPEND CMAKE_${lang}_COMPILER_PREDEFINES_COMMAND "--target=${CMAKE_${lang}_COMPILER_TARGET}")
   endif()
 
   set(_CMAKE_${lang}_IPO_SUPPORTED_BY_CMAKE YES)
   set(_CMAKE_${lang}_IPO_MAY_BE_SUPPORTED_BY_COMPILER YES)
 
-  set(_CMAKE_LTO_THIN TRUE)
+  # Thin LTO is not yet supported on AIX.
+  if(NOT (CMAKE_SYSTEM_NAME STREQUAL "AIX"))
+    set(_CMAKE_LTO_THIN TRUE)
+  endif()
 
   if(_CMAKE_LTO_THIN)
     set(CMAKE_${lang}_COMPILE_OPTIONS_IPO "-flto=thin")
@@ -66,7 +69,9 @@ macro(__compiler_ibmclang lang)
     "\"${__ranlib}\" <TARGET>"
   )
 
-  list(APPEND CMAKE_${lang}_COMPILER_PREDEFINES_COMMAND "-dM" "-E" "-c" "${CMAKE_ROOT}/Modules/CMakeCXXCompilerABI.cpp")
+  if("${lang}" STREQUAL "CXX")
+    list(APPEND CMAKE_${lang}_COMPILER_PREDEFINES_COMMAND "-dM" "-E" "-c" "${CMAKE_ROOT}/Modules/CMakeCXXCompilerABI.cpp")
+  endif()
 
   set(CMAKE_PCH_EXTENSION .pch)
 

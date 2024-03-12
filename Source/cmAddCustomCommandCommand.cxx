@@ -19,6 +19,7 @@
 #include "cmPolicies.h"
 #include "cmStringAlgorithms.h"
 #include "cmSystemTools.h"
+#include "cmValue.h"
 
 bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
                                cmExecutionStatus& status)
@@ -39,6 +40,7 @@ bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
   std::string working;
   std::string depfile;
   std::string job_pool;
+  std::string job_server_aware;
   std::string comment_buffer;
   const char* comment = nullptr;
   std::vector<std::string> depends;
@@ -49,6 +51,8 @@ bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
   bool append = false;
   bool uses_terminal = false;
   bool command_expand_lists = false;
+  bool depends_explicit_only =
+    mf.IsOn("CMAKE_ADD_CUSTOM_COMMAND_DEPENDS_EXPLICIT_ONLY");
   std::string implicit_depends_lang;
   cmImplicitDependsList implicit_depends;
 
@@ -76,6 +80,7 @@ bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
     doing_working_directory,
     doing_depfile,
     doing_job_pool,
+    doing_job_server_aware,
     doing_nothing
   };
 
@@ -93,6 +98,7 @@ bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
   MAKE_STATIC_KEYWORD(DEPFILE);
   MAKE_STATIC_KEYWORD(IMPLICIT_DEPENDS);
   MAKE_STATIC_KEYWORD(JOB_POOL);
+  MAKE_STATIC_KEYWORD(JOB_SERVER_AWARE);
   MAKE_STATIC_KEYWORD(MAIN_DEPENDENCY);
   MAKE_STATIC_KEYWORD(OUTPUT);
   MAKE_STATIC_KEYWORD(OUTPUTS);
@@ -104,6 +110,7 @@ bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
   MAKE_STATIC_KEYWORD(USES_TERMINAL);
   MAKE_STATIC_KEYWORD(VERBATIM);
   MAKE_STATIC_KEYWORD(WORKING_DIRECTORY);
+  MAKE_STATIC_KEYWORD(DEPENDS_EXPLICIT_ONLY);
 #undef MAKE_STATIC_KEYWORD
   static std::unordered_set<std::string> const keywords{
     keyAPPEND,
@@ -123,10 +130,12 @@ bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
     keyPRE_BUILD,
     keyPRE_LINK,
     keySOURCE,
+    keyJOB_SERVER_AWARE,
     keyTARGET,
     keyUSES_TERMINAL,
     keyVERBATIM,
-    keyWORKING_DIRECTORY
+    keyWORKING_DIRECTORY,
+    keyDEPENDS_EXPLICIT_ONLY
   };
 
   for (std::string const& copy : args) {
@@ -155,6 +164,8 @@ bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
         uses_terminal = true;
       } else if (copy == keyCOMMAND_EXPAND_LISTS) {
         command_expand_lists = true;
+      } else if (copy == keyDEPENDS_EXPLICIT_ONLY) {
+        depends_explicit_only = true;
       } else if (copy == keyTARGET) {
         doing = doing_target;
       } else if (copy == keyARGS) {
@@ -184,6 +195,8 @@ bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
         }
       } else if (copy == keyJOB_POOL) {
         doing = doing_job_pool;
+      } else if (copy == keyJOB_SERVER_AWARE) {
+        doing = doing_job_server_aware;
       }
     } else {
       std::string filename;
@@ -219,6 +232,9 @@ bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
           break;
         case doing_job_pool:
           job_pool = copy;
+          break;
+        case doing_job_server_aware:
+          job_server_aware = copy;
           break;
         case doing_working_directory:
           working = copy;
@@ -328,7 +344,9 @@ bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
   cc->SetUsesTerminal(uses_terminal);
   cc->SetDepfile(depfile);
   cc->SetJobPool(job_pool);
+  cc->SetJobserverAware(cmIsOn(job_server_aware));
   cc->SetCommandExpandLists(command_expand_lists);
+  cc->SetDependsExplicitOnly(depends_explicit_only);
   if (source.empty() && output.empty()) {
     // Source is empty, use the target.
     mf.AddCustomCommandToTarget(target, cctype, std::move(cc));

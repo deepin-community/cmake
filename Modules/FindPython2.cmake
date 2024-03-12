@@ -57,7 +57,7 @@ for you.
 
   If components ``Interpreter`` and ``Development`` (or one of its
   sub-components) are both specified, this module search only for interpreter
-  with same platform architecture as the one defined by ``CMake``
+  with same platform architecture as the one defined by CMake
   configuration. This constraint does not apply if only ``Interpreter``
   component is specified.
 
@@ -112,27 +112,23 @@ This module will set the following variables in your project
 ``Python2_STDLIB``
   Standard platform independent installation directory.
 
-  Information returned by
-  ``distutils.sysconfig.get_python_lib(plat_specific=False,standard_lib=True)``
-  or else ``sysconfig.get_path('stdlib')``.
+  Information returned by ``sysconfig.get_path('stdlib')`` or else
+  ``distutils.sysconfig.get_python_lib(plat_specific=False,standard_lib=True)``.
 ``Python2_STDARCH``
   Standard platform dependent installation directory.
 
-  Information returned by
-  ``distutils.sysconfig.get_python_lib(plat_specific=True,standard_lib=True)``
-  or else ``sysconfig.get_path('platstdlib')``.
+  Information returned by ``sysconfig.get_path('platstdlib')`` or else
+  ``distutils.sysconfig.get_python_lib(plat_specific=True,standard_lib=True)``.
 ``Python2_SITELIB``
   Third-party platform independent installation directory.
 
-  Information returned by
-  ``distutils.sysconfig.get_python_lib(plat_specific=False,standard_lib=False)``
-  or else ``sysconfig.get_path('purelib')``.
+  Information returned by ``sysconfig.get_path('purelib')`` or else
+  ``distutils.sysconfig.get_python_lib(plat_specific=False,standard_lib=False)``.
 ``Python2_SITEARCH``
   Third-party platform dependent installation directory.
 
-  Information returned by
-  ``distutils.sysconfig.get_python_lib(plat_specific=True,standard_lib=False)``
-  or else ``sysconfig.get_path('platlib')``.
+  Information returned by ``sysconfig.get_path('platlib')`` or else
+  ``distutils.sysconfig.get_python_lib(plat_specific=True,standard_lib=False)``.
 ``Python2_Compiler_FOUND``
   System has the Python 2 compiler.
 ``Python2_COMPILER``
@@ -233,6 +229,8 @@ Hints
   * ``LOCATION``: Stops lookup as soon as a version satisfying version
     constraints is founded.
     This is the default if policy :policy:`CMP0094` is set to ``NEW``.
+
+  See also ``Python2_FIND_UNVERSIONED_NAMES``.
 
 ``Python2_FIND_REGISTRY``
   .. versionadded:: 3.13
@@ -341,6 +339,8 @@ Hints
     This is the default.
   * ``NEVER``: The generic name are not searched at all.
 
+  See also ``Python2_FIND_STRATEGY``.
+
 Artifacts Specification
 ^^^^^^^^^^^^^^^^^^^^^^^
 
@@ -388,7 +388,7 @@ setting the following variables:
 
 By default, this module supports multiple calls in different directories of a
 project with different version/component requirements while providing correct
-and consistent results for each call. To support this behavior, ``CMake`` cache
+and consistent results for each call. To support this behavior, CMake cache
 is not used in the traditional way which can be problematic for interactive
 specification. So, to enable also interactive specification, module behavior
 can be controlled with the following variable:

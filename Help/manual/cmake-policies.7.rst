@@ -51,6 +51,39 @@ The :variable:`CMAKE_MINIMUM_REQUIRED_VERSION` variable may also be used
 to determine whether to report an error on use of deprecated macros or
 functions.
 
+Policies Introduced by CMake 3.28
+=================================
+
+.. toctree::
+   :maxdepth: 1
+
+   CMP0155: C++ sources in targets with at least C++20 are scanned for imports when supported. </policy/CMP0155>
+   CMP0154: Generated files are private by default in targets using file sets. </policy/CMP0154>
+   CMP0153: The exec_program command should not be called. </policy/CMP0153>
+   CMP0152: file(REAL_PATH) resolves symlinks before collapsing ../ components.  </policy/CMP0152>
+
+Policies Introduced by CMake 3.27
+=================================
+
+.. toctree::
+   :maxdepth: 1
+
+   CMP0151: AUTOMOC include directory is a system include directory by default. </policy/CMP0151>
+   CMP0150: ExternalProject_Add and FetchContent_Declare treat relative git repository paths as being relative to parent project's remote. </policy/CMP0150>
+   CMP0149: Visual Studio generators select latest Windows SDK by default. </policy/CMP0149>
+   CMP0148: The FindPythonInterp and FindPythonLibs modules are removed. </policy/CMP0148>
+   CMP0147: Visual Studio generators build custom commands in parallel. </policy/CMP0147>
+   CMP0146: The FindCUDA module is removed. </policy/CMP0146>
+   CMP0145: The Dart and FindDart modules are removed. </policy/CMP0145>
+   CMP0144: find_package uses upper-case PACKAGENAME_ROOT variables. </policy/CMP0144>
+
+Policies Introduced by CMake 3.26
+=================================
+
+.. toctree::
+   :maxdepth: 1
+
+   CMP0143: USE_FOLDERS global property is treated as ON by default. </policy/CMP0143>
 
 Policies Introduced by CMake 3.25
 =================================

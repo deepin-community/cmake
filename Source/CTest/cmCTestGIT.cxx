@@ -14,8 +14,8 @@
 
 #include "cmCTest.h"
 #include "cmCTestVC.h"
+#include "cmList.h"
 #include "cmProcessOutput.h"
-#include "cmProcessTools.h"
 #include "cmStringAlgorithms.h"
 #include "cmSystemTools.h"
 #include "cmValue.h"
@@ -215,7 +215,7 @@ bool cmCTestGIT::UpdateByFetchAndReset()
 
 bool cmCTestGIT::UpdateByCustom(std::string const& custom)
 {
-  std::vector<std::string> git_custom_command = cmExpandedList(custom, true);
+  cmList git_custom_command{ custom, cmList::EmptyElements::Yes };
   std::vector<char const*> git_custom;
   git_custom.reserve(git_custom_command.size() + 1);
   for (std::string const& i : git_custom_command) {
