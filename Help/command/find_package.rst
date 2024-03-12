@@ -323,18 +323,27 @@ containing a configuration file:
 In all cases the ``<name>`` is treated as case-insensitive and corresponds
 to any of the names specified (``<PackageName>`` or names given by ``NAMES``).
 
-Paths with ``lib/<arch>`` are enabled if the
-:variable:`CMAKE_LIBRARY_ARCHITECTURE` variable is set. ``lib*`` includes one
-or more of the values ``lib64``, ``lib32``, ``libx32`` or ``lib`` (searched in
-that order).
+If at least one compiled language has been enabled, the architecture-specific
+``lib/<arch>`` and ``lib*`` directories may be searched based on the compiler's
+target architecture, in the following order:
 
-* Paths with ``lib64`` are searched on 64 bit platforms if the
+``lib/<arch>``
+  Searched if the :variable:`CMAKE_LIBRARY_ARCHITECTURE` variable is set.
+
+``lib64``
+  Searched on 64 bit platforms (:variable:`CMAKE_SIZEOF_VOID_P` is 8) and the
   :prop_gbl:`FIND_LIBRARY_USE_LIB64_PATHS` property is set to ``TRUE``.
-* Paths with ``lib32`` are searched on 32 bit platforms if the
+
+``lib32``
+  Searched on 32 bit platforms (:variable:`CMAKE_SIZEOF_VOID_P` is 4) and the
   :prop_gbl:`FIND_LIBRARY_USE_LIB32_PATHS` property is set to ``TRUE``.
-* Paths with ``libx32`` are searched on platforms using the x32 ABI
+
+``libx32``
+  Searched on platforms using the x32 ABI
   if the :prop_gbl:`FIND_LIBRARY_USE_LIBX32_PATHS` property is set to ``TRUE``.
-* The ``lib`` path is always searched.
+
+``lib``
+  Always searched.
 
 .. versionchanged:: 3.24
   On ``Windows`` platform, it is possible to include registry queries as part
@@ -346,7 +355,7 @@ that order).
   ``REGISTRY_VIEW`` can be specified to manage ``Windows`` registry queries
   specified as part of ``PATHS`` and ``HINTS``.
 
-.. include:: FIND_XXX_REGISTRY_VIEW.txt
+  .. include:: FIND_XXX_REGISTRY_VIEW.txt
 
 If ``PATH_SUFFIXES`` is specified, the suffixes are appended to each
 (``W``) or (``U``) directory entry one-by-one.
@@ -367,16 +376,37 @@ The set of installation prefixes is constructed using the following
 steps.  If ``NO_DEFAULT_PATH`` is specified all ``NO_*`` options are
 enabled.
 
-1. .. versionadded:: 3.12
-    Search paths specified in the :variable:`<PackageName>_ROOT` CMake
-    variable and the :envvar:`<PackageName>_ROOT` environment variable,
-    where ``<PackageName>`` is the package to be found.
-    The package root variables are maintained as a stack so if
-    called from within a find module, root paths from the parent's find
-    module will also be searched after paths for the current package.
-    This can be skipped if ``NO_PACKAGE_ROOT_PATH`` is passed or by setting
-    the :variable:`CMAKE_FIND_USE_PACKAGE_ROOT_PATH` to ``FALSE``.
-    See policy :policy:`CMP0074`.
+1. Search prefixes unique to the current ``<PackageName>`` being found.
+   See policy :policy:`CMP0074`.
+
+   .. versionadded:: 3.12
+
+   Specifically, search prefixes specified by the following variables,
+   in order:
+
+   a. :variable:`<PackageName>_ROOT` CMake variable,
+      where ``<PackageName>`` is the case-preserved package name.
+
+   b. :variable:`<PACKAGENAME>_ROOT` CMake variable,
+      where ``<PACKAGENAME>`` is the upper-cased package name.
+      See policy :policy:`CMP0144`.
+
+      .. versionadded:: 3.27
+
+   c. :envvar:`<PackageName>_ROOT` environment variable,
+      where ``<PackageName>`` is the case-preserved package name.
+
+   d. :envvar:`<PACKAGENAME>_ROOT` environment variable,
+      where ``<PACKAGENAME>`` is the upper-cased package name.
+      See policy :policy:`CMP0144`.
+
+      .. versionadded:: 3.27
+
+   The package root variables are maintained as a stack so if
+   called from within a find module, root paths from the parent's find
+   module will also be searched after paths for the current package.
+   This can be skipped if ``NO_PACKAGE_ROOT_PATH`` is passed or by setting
+   the :variable:`CMAKE_FIND_USE_PACKAGE_ROOT_PATH` to ``FALSE``.
 
 2. Search paths specified in cmake-specific cache variables.  These
    are intended to be used on the command line with a :option:`-DVAR=VALUE <cmake -D>`.
@@ -397,8 +427,8 @@ enabled.
 
    * ``<PackageName>_DIR``
    * :envvar:`CMAKE_PREFIX_PATH`
-   * ``CMAKE_FRAMEWORK_PATH``
-   * ``CMAKE_APPBUNDLE_PATH``
+   * :envvar:`CMAKE_FRAMEWORK_PATH`
+   * :envvar:`CMAKE_APPBUNDLE_PATH`
 
 4. Search paths specified by the ``HINTS`` option.  These should be paths
    computed by system introspection, such as a hint provided by the

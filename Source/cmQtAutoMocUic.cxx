@@ -27,6 +27,7 @@
 #include "cmCryptoHash.h"
 #include "cmFileTime.h"
 #include "cmGccDepfileReader.h"
+#include "cmGccDepfileReaderTypes.h"
 #include "cmGeneratedFileStream.h"
 #include "cmQtAutoGen.h"
 #include "cmQtAutoGenerator.h"
@@ -1756,7 +1757,7 @@ bool cmQtAutoMocUicT::JobProbeDepsMocT::Probe(MappingT const& mapping,
   if (this->MocConst().SettingsChanged) {
     if (reason != nullptr) {
       *reason = cmStrCat("Generating ", this->MessagePath(outputFile),
-                         ", because the uic settings changed, from ",
+                         ", because the moc settings changed, from ",
                          this->MessagePath(sourceFile));
     }
     return true;
@@ -1981,6 +1982,9 @@ void cmQtAutoMocUicT::JobCompileMocT::Process()
   std::string const& sourceFile = this->Mapping->SourceFile->FileName;
   std::string const& outputFile = this->Mapping->OutputFile;
 
+  // Remove output file in case the case of the source file has changed
+  cmSystemTools::RemoveFile(outputFile);
+
   // Compose moc command
   std::vector<std::string> cmd;
   {
@@ -2113,7 +2117,7 @@ void cmQtAutoMocUicT::JobCompileMocT::MaybeWriteMocResponseFile(
     cmd.resize(1);
 
     // Specify response file
-    cmd.push_back(cmStrCat('@', responseFile));
+    cmd.emplace_back(cmStrCat('@', responseFile));
   }
 #else
   static_cast<void>(outputFile);
@@ -2269,10 +2273,9 @@ cmQtAutoMocUicT::JobDepFilesMergeT::initialDependencies() const
 void cmQtAutoMocUicT::JobDepFilesMergeT::Process()
 {
   if (this->Log().Verbose()) {
-    this->Log().Info(
-      GenT::MOC,
-      cmStrCat("Merging MOC dependencies into ",
-               this->MessagePath(this->BaseConst().DepFile.c_str())));
+    this->Log().Info(GenT::MOC,
+                     cmStrCat("Merging MOC dependencies into ",
+                              this->MessagePath(this->BaseConst().DepFile)));
   }
   auto processDepFile =
     [this](const std::string& mocOutputFile) -> std::vector<std::string> {

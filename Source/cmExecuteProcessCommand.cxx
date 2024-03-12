@@ -20,6 +20,7 @@
 
 #include "cmArgumentParser.h"
 #include "cmExecutionStatus.h"
+#include "cmList.h"
 #include "cmMakefile.h"
 #include "cmMessageType.h"
 #include "cmProcessOutput.h"
@@ -106,9 +107,27 @@ bool cmExecuteProcessCommand(std::vector<std::string> const& args,
     return false;
   }
 
-  if (!status.GetMakefile().CanIWriteThisFile(arguments.OutputFile)) {
-    status.SetError("attempted to output into a file: " +
-                    arguments.OutputFile + " into a source directory.");
+  std::string inputFilename = arguments.InputFile;
+  std::string outputFilename = arguments.OutputFile;
+  std::string errorFilename = arguments.ErrorFile;
+  if (!arguments.WorkingDirectory.empty()) {
+    if (!inputFilename.empty()) {
+      inputFilename = cmSystemTools::CollapseFullPath(
+        inputFilename, arguments.WorkingDirectory);
+    }
+    if (!outputFilename.empty()) {
+      outputFilename = cmSystemTools::CollapseFullPath(
+        outputFilename, arguments.WorkingDirectory);
+    }
+    if (!errorFilename.empty()) {
+      errorFilename = cmSystemTools::CollapseFullPath(
+        errorFilename, arguments.WorkingDirectory);
+    }
+  }
+
+  if (!status.GetMakefile().CanIWriteThisFile(outputFilename)) {
+    status.SetError("attempted to output into a file: " + outputFilename +
+                    " into a source directory.");
     cmSystemTools::SetFatalErrorOccurred();
     return false;
   }
@@ -356,7 +375,7 @@ bool cmExecuteProcessCommand(std::vector<std::string> const& args,
           }
         }
         status.GetMakefile().AddDefinition(arguments.ResultsVariable,
-                                           cmJoin(res, ";"));
+                                           cmList::to_string(res));
       } break;
       case cmsysProcess_State_Exception:
         status.GetMakefile().AddDefinition(

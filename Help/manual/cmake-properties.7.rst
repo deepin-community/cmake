@@ -77,8 +77,6 @@ Properties on Directories
    /prop_dir/IMPORTED_TARGETS
    /prop_dir/INCLUDE_DIRECTORIES
    /prop_dir/INCLUDE_REGULAR_EXPRESSION
-   /prop_dir/INTERPROCEDURAL_OPTIMIZATION
-   /prop_dir/INTERPROCEDURAL_OPTIMIZATION_CONFIG
    /prop_dir/LABELS
    /prop_dir/LINK_DIRECTORIES
    /prop_dir/LINK_OPTIONS
@@ -135,6 +133,7 @@ Properties on Targets
    /prop_tgt/AUTOGEN_ORIGIN_DEPENDS
    /prop_tgt/AUTOGEN_PARALLEL
    /prop_tgt/AUTOGEN_TARGET_DEPENDS
+   /prop_tgt/AUTOGEN_USE_SYSTEM_INCLUDE
    /prop_tgt/AUTOMOC
    /prop_tgt/AUTOMOC_COMPILER_PREDEFINES
    /prop_tgt/AUTOMOC_DEPEND_FILTERS
@@ -177,7 +176,10 @@ Properties on Targets
    /prop_tgt/CONFIG_POSTFIX
    /prop_tgt/CROSSCOMPILING_EMULATOR
    /prop_tgt/CUDA_ARCHITECTURES
+   /prop_tgt/CUDA_CUBIN_COMPILATION
    /prop_tgt/CUDA_EXTENSIONS
+   /prop_tgt/CUDA_FATBIN_COMPILATION
+   /prop_tgt/CUDA_OPTIX_COMPILATION
    /prop_tgt/CUDA_PTX_COMPILATION
    /prop_tgt/CUDA_RESOLVE_DEVICE_SYMBOLS
    /prop_tgt/CUDA_RUNTIME_LIBRARY
@@ -187,14 +189,10 @@ Properties on Targets
    /prop_tgt/CXX_EXTENSIONS
    /prop_tgt/CXX_MODULE_DIRS
    /prop_tgt/CXX_MODULE_DIRS_NAME
-   /prop_tgt/CXX_MODULE_HEADER_UNIT_DIRS
-   /prop_tgt/CXX_MODULE_HEADER_UNIT_DIRS_NAME
-   /prop_tgt/CXX_MODULE_HEADER_UNIT_SET
-   /prop_tgt/CXX_MODULE_HEADER_UNIT_SET_NAME
-   /prop_tgt/CXX_MODULE_HEADER_UNIT_SETS
    /prop_tgt/CXX_MODULE_SET
    /prop_tgt/CXX_MODULE_SET_NAME
    /prop_tgt/CXX_MODULE_SETS
+   /prop_tgt/CXX_SCAN_FOR_MODULES
    /prop_tgt/CXX_STANDARD
    /prop_tgt/CXX_STANDARD_REQUIRED
    /prop_tgt/DEBUG_POSTFIX
@@ -203,6 +201,7 @@ Properties on Targets
    /prop_tgt/DEPLOYMENT_REMOTE_DIRECTORY
    /prop_tgt/DEPRECATION
    /prop_tgt/DISABLE_PRECOMPILE_HEADERS
+   /prop_tgt/DLL_NAME_WITH_SOVERSION
    /prop_tgt/DOTNET_SDK
    /prop_tgt/DOTNET_TARGET_FRAMEWORK
    /prop_tgt/DOTNET_TARGET_FRAMEWORK_VERSION
@@ -241,6 +240,11 @@ Properties on Targets
    /prop_tgt/IMPORTED
    /prop_tgt/IMPORTED_COMMON_LANGUAGE_RUNTIME
    /prop_tgt/IMPORTED_CONFIGURATIONS
+   /prop_tgt/IMPORTED_CXX_MODULES_COMPILE_DEFINITIONS
+   /prop_tgt/IMPORTED_CXX_MODULES_COMPILE_FEATURES
+   /prop_tgt/IMPORTED_CXX_MODULES_COMPILE_OPTIONS
+   /prop_tgt/IMPORTED_CXX_MODULES_INCLUDE_DIRECTORIES
+   /prop_tgt/IMPORTED_CXX_MODULES_LINK_LIBRARIES
    /prop_tgt/IMPORTED_GLOBAL
    /prop_tgt/IMPORTED_IMPLIB
    /prop_tgt/IMPORTED_IMPLIB_CONFIG
@@ -258,7 +262,6 @@ Properties on Targets
    /prop_tgt/IMPORTED_LOCATION_CONFIG
    /prop_tgt/IMPORTED_NO_SONAME
    /prop_tgt/IMPORTED_NO_SONAME_CONFIG
-   /prop_tgt/IMPORTED_NO_SYSTEM
    /prop_tgt/IMPORTED_OBJECTS
    /prop_tgt/IMPORTED_OBJECTS_CONFIG
    /prop_tgt/IMPORTED_SONAME
@@ -270,11 +273,11 @@ Properties on Targets
    /prop_tgt/INSTALL_REMOVE_ENVIRONMENT_RPATH
    /prop_tgt/INSTALL_RPATH
    /prop_tgt/INSTALL_RPATH_USE_LINK_PATH
+   /prop_tgt/INTERFACE_AUTOMOC_MACRO_NAMES
    /prop_tgt/INTERFACE_AUTOUIC_OPTIONS
    /prop_tgt/INTERFACE_COMPILE_DEFINITIONS
    /prop_tgt/INTERFACE_COMPILE_FEATURES
    /prop_tgt/INTERFACE_COMPILE_OPTIONS
-   /prop_tgt/INTERFACE_CXX_MODULE_HEADER_UNIT_SETS
    /prop_tgt/INTERFACE_CXX_MODULE_SETS
    /prop_tgt/INTERFACE_HEADER_SETS
    /prop_tgt/INTERFACE_HEADER_SETS_TO_VERIFY
@@ -291,7 +294,6 @@ Properties on Targets
    /prop_tgt/INTERFACE_SYSTEM_INCLUDE_DIRECTORIES
    /prop_tgt/INTERPROCEDURAL_OPTIMIZATION
    /prop_tgt/INTERPROCEDURAL_OPTIMIZATION_CONFIG
-   /prop_tgt/IOS_INSTALL_COMBINED
    /prop_tgt/ISPC_HEADER_DIRECTORY
    /prop_tgt/ISPC_HEADER_SUFFIX
    /prop_tgt/ISPC_INSTRUCTION_SETS
@@ -300,6 +302,7 @@ Properties on Targets
    /prop_tgt/JOB_POOL_PRECOMPILE_HEADER
    /prop_tgt/LABELS
    /prop_tgt/LANG_CLANG_TIDY
+   /prop_tgt/LANG_CLANG_TIDY_EXPORT_FIXES_DIR
    /prop_tgt/LANG_COMPILER_LAUNCHER
    /prop_tgt/LANG_CPPCHECK
    /prop_tgt/LANG_CPPLINT
@@ -439,7 +442,6 @@ Properties on Targets
    /prop_tgt/VS_USER_PROPS
    /prop_tgt/VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION
    /prop_tgt/VS_WINRT_COMPONENT
-   /prop_tgt/VS_WINRT_EXTENSIONS
    /prop_tgt/VS_WINRT_REFERENCES
    /prop_tgt/WATCOM_RUNTIME_LIBRARY
    /prop_tgt/WIN32_EXECUTABLE
@@ -503,6 +505,7 @@ Properties on Tests
    /prop_test/FIXTURES_CLEANUP
    /prop_test/FIXTURES_REQUIRED
    /prop_test/FIXTURES_SETUP
+   /prop_test/GENERATED_RESOURCE_SPEC_FILE
    /prop_test/LABELS
    /prop_test/MEASUREMENT
    /prop_test/PASS_REGULAR_EXPRESSION
@@ -516,6 +519,8 @@ Properties on Tests
    /prop_test/SKIP_RETURN_CODE
    /prop_test/TIMEOUT
    /prop_test/TIMEOUT_AFTER_MATCH
+   /prop_test/TIMEOUT_SIGNAL_GRACE_PERIOD
+   /prop_test/TIMEOUT_SIGNAL_NAME
    /prop_test/WILL_FAIL
    /prop_test/WORKING_DIRECTORY
 
@@ -533,6 +538,7 @@ Properties on Source Files
    /prop_sf/COMPILE_DEFINITIONS
    /prop_sf/COMPILE_FLAGS
    /prop_sf/COMPILE_OPTIONS
+   /prop_sf/CXX_SCAN_FOR_MODULES
    /prop_sf/EXTERNAL_OBJECT
    /prop_sf/Fortran_FORMAT
    /prop_sf/Fortran_PREPROCESS
@@ -550,6 +556,7 @@ Properties on Source Files
    /prop_sf/SKIP_AUTOMOC
    /prop_sf/SKIP_AUTORCC
    /prop_sf/SKIP_AUTOUIC
+   /prop_sf/SKIP_LINTING
    /prop_sf/SKIP_PRECOMPILE_HEADERS
    /prop_sf/SKIP_UNITY_BUILD_INCLUSION
    /prop_sf/Swift_DEPENDENCIES_FILE
@@ -618,6 +625,8 @@ Deprecated Properties on Directories
 
    /prop_dir/ADDITIONAL_MAKE_CLEAN_FILES
    /prop_dir/COMPILE_DEFINITIONS_CONFIG
+   /prop_dir/INTERPROCEDURAL_OPTIMIZATION
+   /prop_dir/INTERPROCEDURAL_OPTIMIZATION_CONFIG
    /prop_dir/TEST_INCLUDE_FILE
 
 
@@ -628,8 +637,11 @@ Deprecated Properties on Targets
    :maxdepth: 1
 
    /prop_tgt/COMPILE_DEFINITIONS_CONFIG
+   /prop_tgt/IMPORTED_NO_SYSTEM
+   /prop_tgt/IOS_INSTALL_COMBINED
    /prop_tgt/POST_INSTALL_SCRIPT
    /prop_tgt/PRE_INSTALL_SCRIPT
+   /prop_tgt/VS_WINRT_EXTENSIONS
 
 
 Deprecated Properties on Source Files

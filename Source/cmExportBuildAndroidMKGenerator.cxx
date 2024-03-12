@@ -2,6 +2,7 @@
    file Copyright.txt or https://cmake.org/licensing for details.  */
 #include "cmExportBuildAndroidMKGenerator.h"
 
+#include <map>
 #include <sstream>
 #include <utility>
 #include <vector>
@@ -10,6 +11,7 @@
 
 #include "cmGeneratorTarget.h"
 #include "cmLinkItem.h"
+#include "cmList.h"
 #include "cmMakefile.h"
 #include "cmMessageType.h"
 #include "cmPolicies.h"
@@ -148,7 +150,7 @@ void cmExportBuildAndroidMKGenerator::GenerateInterfaceProperties(
         }
       } else if (property.first == "INTERFACE_INCLUDE_DIRECTORIES") {
         std::string includes = property.second;
-        std::vector<std::string> includeList = cmExpandedList(includes);
+        cmList includeList{ includes };
         os << "LOCAL_EXPORT_C_INCLUDES := ";
         std::string end;
         for (std::string const& i : includeList) {
@@ -158,9 +160,8 @@ void cmExportBuildAndroidMKGenerator::GenerateInterfaceProperties(
         os << "\n";
       } else if (property.first == "INTERFACE_LINK_OPTIONS") {
         os << "LOCAL_EXPORT_LDFLAGS := ";
-        std::vector<std::string> linkFlagsList =
-          cmExpandedList(property.second);
-        os << cmJoin(linkFlagsList, " ") << "\n";
+        cmList linkFlagsList{ property.second };
+        os << linkFlagsList.join(" ") << "\n";
       } else {
         os << "# " << property.first << " " << (property.second) << "\n";
       }

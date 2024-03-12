@@ -9,6 +9,7 @@
 #include <cm/optional>
 
 #include "cmFindCommon.h"
+#include "cmList.h"
 #include "cmMakefile.h"
 #include "cmStringAlgorithms.h"
 #include "cmSystemTools.h"
@@ -71,7 +72,7 @@ void cmSearchPath::AddCMakePath(const std::string& variable)
 
   // Get a path from a CMake variable.
   if (cmValue value = this->FC->Makefile->GetDefinition(variable)) {
-    std::vector<std::string> expanded = cmExpandedList(*value);
+    cmList expanded{ *value };
 
     for (std::string const& p : expanded) {
       this->AddPathInternal(
@@ -95,7 +96,7 @@ void cmSearchPath::AddCMakePrefixPath(const std::string& variable)
 
   // Get a path from a CMake variable.
   if (cmValue value = this->FC->Makefile->GetDefinition(variable)) {
-    std::vector<std::string> expanded = cmExpandedList(*value);
+    cmList expanded{ *value };
 
     this->AddPrefixPaths(
       expanded, this->FC->Makefile->GetCurrentSourceDirectory().c_str());
@@ -179,12 +180,27 @@ void cmSearchPath::AddPrefixPaths(const std::vector<std::string>& paths,
       cmValue arch =
         this->FC->Makefile->GetDefinition("CMAKE_LIBRARY_ARCHITECTURE");
       if (cmNonempty(arch)) {
+        std::string archNoUnknown = *arch;
+        auto unknownAtPos = archNoUnknown.find("-unknown-");
+        bool foundUnknown = unknownAtPos != std::string::npos;
+        if (foundUnknown) {
+          // Replace "-unknown-" with "-".
+          archNoUnknown.replace(unknownAtPos, 9, "-");
+        }
         if (this->FC->Makefile->IsDefinitionSet("CMAKE_SYSROOT") &&
             this->FC->Makefile->IsDefinitionSet(
               "CMAKE_PREFIX_LIBRARY_ARCHITECTURE")) {
+          if (foundUnknown) {
+            this->AddPathInternal(cmStrCat('/', archNoUnknown, dir, subdir),
+                                  cmStrCat('/', archNoUnknown, prefix), base);
+          }
           this->AddPathInternal(cmStrCat('/', *arch, dir, subdir),
                                 cmStrCat('/', *arch, prefix), base);
         } else {
+          if (foundUnknown) {
+            this->AddPathInternal(cmStrCat(dir, subdir, '/', archNoUnknown),
+                                  prefix, base);
+          }
           this->AddPathInternal(cmStrCat(dir, subdir, '/', *arch), prefix,
                                 base);
         }

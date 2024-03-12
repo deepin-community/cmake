@@ -431,7 +431,49 @@ class cmMakefile;
   SELECT(POLICY, CMP0142,                                                     \
          "The Xcode generator does not append per-config suffixes to "        \
          "library search paths.",                                             \
-         3, 25, 0, cmPolicies::WARN)
+         3, 25, 0, cmPolicies::WARN)                                          \
+  SELECT(POLICY, CMP0143,                                                     \
+         "Global property USE_FOLDERS treated as ON by default", 3, 26, 0,    \
+         cmPolicies::WARN)                                                    \
+  SELECT(POLICY, CMP0144,                                                     \
+         "find_package uses upper-case <PACKAGENAME>_ROOT variables.", 3, 27, \
+         0, cmPolicies::WARN)                                                 \
+  SELECT(POLICY, CMP0145, "The Dart and FindDart modules are removed.", 3,    \
+         27, 0, cmPolicies::WARN)                                             \
+  SELECT(POLICY, CMP0146, "The FindCUDA module is removed.", 3, 27, 0,        \
+         cmPolicies::WARN)                                                    \
+  SELECT(POLICY, CMP0147,                                                     \
+         "Visual Studio generators build custom commands in parallel.", 3,    \
+         27, 0, cmPolicies::WARN)                                             \
+  SELECT(POLICY, CMP0148,                                                     \
+         "The FindPythonInterp and FindPythonLibs modules are removed.", 3,   \
+         27, 0, cmPolicies::WARN)                                             \
+  SELECT(POLICY, CMP0149,                                                     \
+         "Visual Studio generators select latest Windows SDK by default.", 3, \
+         27, 0, cmPolicies::WARN)                                             \
+  SELECT(POLICY, CMP0150,                                                     \
+         "ExternalProject_Add and FetchContent_Declare commands "             \
+         "treat relative GIT_REPOSITORY paths as being relative "             \
+         "to the parent project's remote.",                                   \
+         3, 27, 0, cmPolicies::WARN)                                          \
+  SELECT(POLICY, CMP0151,                                                     \
+         "AUTOMOC include directory is a system include directory by "        \
+         "default.",                                                          \
+         3, 27, 0, cmPolicies::WARN)                                          \
+  SELECT(                                                                     \
+    POLICY, CMP0152,                                                          \
+    "file(REAL_PATH) resolves symlinks before collapsing ../ components.", 3, \
+    28, 0, cmPolicies::WARN)                                                  \
+  SELECT(POLICY, CMP0153, "The exec_program command should not be called.",   \
+         3, 28, 0, cmPolicies::WARN)                                          \
+  SELECT(                                                                     \
+    POLICY, CMP0154,                                                          \
+    "Generated files are private by default in targets using file sets.", 3,  \
+    28, 0, cmPolicies::WARN)                                                  \
+  SELECT(POLICY, CMP0155,                                                     \
+         "C++ sources in targets with at least C++20 are scanned for "        \
+         "imports when supported.",                                           \
+         3, 28, 0, cmPolicies::WARN)
 
 #define CM_SELECT_ID(F, A1, A2, A3, A4, A5, A6) F(A1)
 #define CM_FOR_EACH_POLICY_ID(POLICY)                                         \
@@ -469,7 +511,13 @@ class cmMakefile;
   F(CMP0113)                                                                  \
   F(CMP0119)                                                                  \
   F(CMP0131)                                                                  \
-  F(CMP0142)
+  F(CMP0142)                                                                  \
+  F(CMP0154)                                                                  \
+  F(CMP0155)
+
+#define CM_FOR_EACH_CUSTOM_COMMAND_POLICY(F)                                  \
+  F(CMP0116)                                                                  \
+  F(CMP0147)
 
 /** \class cmPolicies
  * \brief Handles changes in CMake behavior and policies

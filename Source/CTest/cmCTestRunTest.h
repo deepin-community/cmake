@@ -14,7 +14,6 @@
 #include "cmCTest.h"
 #include "cmCTestMultiProcessHandler.h"
 #include "cmCTestTestHandler.h"
-#include "cmDuration.h"
 #include "cmProcess.h"
 
 /** \class cmRunTest
@@ -69,19 +68,26 @@ public:
                          size_t completed);
 
   static void StartFailure(std::unique_ptr<cmCTestRunTest> runner,
-                           std::string const& output,
+                           size_t total, std::string const& output,
                            std::string const& detail);
+
+  struct EndTestResult
+  {
+    bool Passed = false;
+    bool StopTimePassed = false;
+  };
 
   // launch the test process, return whether it started correctly
   bool StartTest(size_t completed, size_t total);
   // capture and report the test results
-  bool EndTest(size_t completed, size_t total, bool started);
+  EndTestResult EndTest(size_t completed, size_t total, bool started);
   // Called by ctest -N to log the command string
   void ComputeArguments();
 
   void ComputeWeightedCost();
 
-  void StartFailure(std::string const& output, std::string const& detail);
+  void StartFailure(size_t total, std::string const& output,
+                    std::string const& detail);
 
   cmCTest* GetCTest() const { return this->CTest; }
 
@@ -90,8 +96,6 @@ public:
   const std::vector<std::string>& GetArguments() { return this->Arguments; }
 
   void FinalizeTest(bool started = true);
-
-  bool TimedOutForStopTime() const { return this->TimeoutIsForStopTime; }
 
   void SetUseAllocatedResources(bool use)
   {
@@ -110,10 +114,7 @@ private:
   bool NeedsToRepeat();
   void ParseOutputForMeasurements();
   void ExeNotFound(std::string exe);
-  bool ForkProcess(cmDuration testTimeOut, bool explicitTimeout,
-                   std::vector<std::string>* environment,
-                   std::vector<std::string>* environment_modification,
-                   std::vector<size_t>* affinity);
+  bool ForkProcess();
   void WriteLogOutputTop(size_t completed, size_t total);
   // Run post processing of the process output for MemCheck
   void MemCheckPostProcess();
@@ -124,7 +125,6 @@ private:
   std::string GetTestPrefix(size_t completed, size_t total) const;
 
   cmCTestTestHandler::cmCTestTestProperties* TestProperties;
-  bool TimeoutIsForStopTime = false;
   // Pointer back to the "parent"; the handler that invoked this test run
   cmCTestTestHandler* TestHandler;
   cmCTest* CTest;

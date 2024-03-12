@@ -6,10 +6,10 @@
 #include <utility>
 #include <vector>
 
-#include "cmDocumentationEntry.h"
 #include "cmGlobalGenerator.h"
 #include "cmGlobalGeneratorFactory.h"
 #include "cmGlobalVisualStudioGenerator.h"
+#include "cmStringAlgorithms.h"
 #include "cmSystemTools.h"
 #include "cmVisualStudioWCEPlatformParser.h"
 
@@ -62,31 +62,31 @@ public:
     return std::unique_ptr<cmGlobalGenerator>(std::move(ret));
   }
 
-  void GetDocumentation(cmDocumentationEntry& entry) const override
+  cmDocumentationEntry GetDocumentation() const override
   {
-    entry.Name = std::string(vs9generatorName) + " [arch]";
-    entry.Brief = "Generates Visual Studio 2008 project files.  "
-                  "Optional [arch] can be \"Win64\" or \"IA64\".";
+    return { cmStrCat(vs9generatorName, " [arch]"),
+             "Deprecated.  Generates Visual Studio 2008 project files.  "
+             "Optional [arch] can be \"Win64\" or \"IA64\"." };
   }
 
   std::vector<std::string> GetGeneratorNames() const override
   {
     std::vector<std::string> names;
-    names.push_back(vs9generatorName);
+    names.emplace_back(vs9generatorName);
     return names;
   }
 
   std::vector<std::string> GetGeneratorNamesWithPlatform() const override
   {
     std::vector<std::string> names;
-    names.push_back(vs9generatorName + std::string(" Win64"));
-    names.push_back(vs9generatorName + std::string(" IA64"));
+    names.emplace_back(cmStrCat(vs9generatorName, " Win64"));
+    names.emplace_back(cmStrCat(vs9generatorName, " IA64"));
     cmVisualStudioWCEPlatformParser parser;
     parser.ParseVersion("9.0");
     const std::vector<std::string>& availablePlatforms =
       parser.GetAvailablePlatforms();
     for (std::string const& i : availablePlatforms) {
-      names.push_back("Visual Studio 9 2008 " + i);
+      names.emplace_back(cmStrCat("Visual Studio 9 2008 ", i));
     }
     return names;
   }
@@ -145,7 +145,7 @@ std::string cmGlobalVisualStudio9Generator::GetUserMacrosDirectory()
     cmSystemTools::ConvertToUnixSlashes(base);
 
     // 9.0 macros folder:
-    path = base + "/VSMacros80";
+    path = cmStrCat(base, "/VSMacros80");
     // *NOT* a typo; right now in Visual Studio 2008 beta the macros
     // folder is VSMacros80... They may change it to 90 before final
     // release of 2008 or they may not... we'll have to keep our eyes
@@ -159,5 +159,5 @@ std::string cmGlobalVisualStudio9Generator::GetUserMacrosDirectory()
 
 std::string cmGlobalVisualStudio9Generator::GetUserMacrosRegKeyBase()
 {
-  return "Software\\Microsoft\\VisualStudio\\9.0\\vsmacros";
+  return R"(Software\Microsoft\VisualStudio\9.0\vsmacros)";
 }

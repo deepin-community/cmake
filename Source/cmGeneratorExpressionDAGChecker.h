@@ -23,6 +23,7 @@ class cmGeneratorTarget;
   SELECT(F, EvaluatingSystemIncludeDirectories, SYSTEM_INCLUDE_DIRECTORIES)   \
   SELECT(F, EvaluatingCompileDefinitions, COMPILE_DEFINITIONS)                \
   SELECT(F, EvaluatingCompileOptions, COMPILE_OPTIONS)                        \
+  SELECT(F, EvaluatingAutoMocMacroNames, AUTOMOC_MACRO_NAMES)                 \
   SELECT(F, EvaluatingAutoUicOptions, AUTOUIC_OPTIONS)                        \
   SELECT(F, EvaluatingSources, SOURCES)                                       \
   SELECT(F, EvaluatingCompileFeatures, COMPILE_FEATURES)                      \
@@ -70,6 +71,7 @@ struct cmGeneratorExpressionDAGChecker
   bool EvaluatingCompileExpression() const;
   bool EvaluatingLinkExpression() const;
   bool EvaluatingLinkOptionsExpression() const;
+  bool EvaluatingLinkerLauncher() const;
 
   enum class ForGenex
   {
@@ -89,6 +91,9 @@ struct cmGeneratorExpressionDAGChecker
   bool GetTransitivePropertiesOnly() const;
   void SetTransitivePropertiesOnly() { this->TransitivePropertiesOnly = true; }
 
+  bool GetTransitivePropertiesOnlyCMP0131() const;
+  void SetTransitivePropertiesOnlyCMP0131() { this->CMP0131 = true; }
+
   cmGeneratorExpressionDAGChecker const* Top() const;
   cmGeneratorTarget const* TopTarget() const;
 
@@ -104,4 +109,5 @@ private:
   const cmListFileBacktrace Backtrace;
   Result CheckResult;
   bool TransitivePropertiesOnly;
+  bool CMP0131;
 };

@@ -20,6 +20,7 @@
 #include "cmCPackLog.h"
 #include "cmCryptoHash.h"
 #include "cmGeneratedFileStream.h"
+#include "cmList.h"
 #include "cmStringAlgorithms.h"
 #include "cmSystemTools.h"
 #include "cmValue.h"
@@ -124,8 +125,8 @@ DebGenerator::DebGenerator(
                     << debianCompressionType << std::endl);
   }
 
-  if (numThreads != nullptr) {
-    if (!cmStrToLong(numThreads, &this->NumThreads)) {
+  if (numThreads) {
+    if (!cmStrToLong(*numThreads, &this->NumThreads)) {
       this->NumThreads = 1;
       cmCPackLogger(cmCPackLog::LOG_ERROR,
                     "Unrecognized number of threads: " << numThreads
@@ -289,8 +290,8 @@ std::string DebGenerator::generateMD5File() const
       continue;
     }
 
-    std::string output =
-      cmSystemTools::ComputeFileHash(file, cmCryptoHash::AlgoMD5);
+    cmCryptoHash hasher(cmCryptoHash::AlgoMD5);
+    std::string output = hasher.HashFile(file);
     if (output.empty()) {
       cmCPackLogger(cmCPackLog::LOG_ERROR,
                     "Problem computing the md5 of " << file << std::endl);
@@ -427,8 +428,7 @@ bool DebGenerator::generateControlTar(std::string const& md5Filename) const
     // default
     control_tar.ClearPermissions();
 
-    std::vector<std::string> controlExtraList =
-      cmExpandedList(this->ControlExtra);
+    cmList controlExtraList{ this->ControlExtra };
     for (std::string const& i : controlExtraList) {
       std::string filenamename = cmsys::SystemTools::GetFilenameName(i);
       std::string localcopy = this->WorkDir + "/" + filenamename;
@@ -703,7 +703,7 @@ bool cmCPackDebGenerator::createDebPackages()
                  &cmCPackDebGenerator::createDeb);
   cmValue dbgsymdir_path = this->GetOption("GEN_DBGSYMDIR");
   if (this->IsOn("GEN_CPACK_DEBIAN_DEBUGINFO_PACKAGE") && dbgsymdir_path) {
-    retval = make_package(dbgsymdir_path, "GEN_CPACK_DBGSYM_OUTPUT_FILE_NAME",
+    retval = make_package(*dbgsymdir_path, "GEN_CPACK_DBGSYM_OUTPUT_FILE_NAME",
                           &cmCPackDebGenerator::createDbgsymDDeb) &&
       retval;
   }

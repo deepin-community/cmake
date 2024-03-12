@@ -31,22 +31,17 @@ If the check needs to be done in C++, consider using
 The following variables may be set before calling this macro to modify
 the way the check is run:
 
-``CMAKE_REQUIRED_FLAGS``
-  string of compile command line flags.
-``CMAKE_REQUIRED_DEFINITIONS``
-  a :ref:`;-list <CMake Language Lists>` of macros to define (-DFOO=bar).
-``CMAKE_REQUIRED_INCLUDES``
-  a :ref:`;-list <CMake Language Lists>` of header search paths to pass to
-  the compiler.
-``CMAKE_REQUIRED_LINK_OPTIONS``
-  .. versionadded:: 3.14
-    a :ref:`;-list <CMake Language Lists>` of options to add to the link command.
-``CMAKE_REQUIRED_LIBRARIES``
-  a :ref:`;-list <CMake Language Lists>` of libraries to add to the link
-  command. See policy :policy:`CMP0075`.
-``CMAKE_REQUIRED_QUIET``
-  .. versionadded:: 3.1
-    execute quietly without messages.
+.. include:: /module/CMAKE_REQUIRED_FLAGS.txt
+
+.. include:: /module/CMAKE_REQUIRED_DEFINITIONS.txt
+
+.. include:: /module/CMAKE_REQUIRED_INCLUDES.txt
+
+.. include:: /module/CMAKE_REQUIRED_LINK_OPTIONS.txt
+
+.. include:: /module/CMAKE_REQUIRED_LIBRARIES.txt
+
+.. include:: /module/CMAKE_REQUIRED_QUIET.txt
 
 For example:
 
@@ -62,7 +57,7 @@ For example:
 
 include_guard(GLOBAL)
 
-cmake_policy(PUSH)
+block(SCOPE_FOR POLICIES)
 cmake_policy(SET CMP0054 NEW) # if() quoted variables not dereferenced
 
 macro(CHECK_SYMBOL_EXISTS SYMBOL FILES VARIABLE)
@@ -136,7 +131,7 @@ int main(int argc, char** argv)
   ${_CSE_CHECK_NON_MACRO}")
     endif()
     string(APPEND _CSE_SOURCE "
-}")
+}\n")
     unset(_CSE_CHECK_NON_MACRO)
 
     if(NOT CMAKE_REQUIRED_QUIET)
@@ -150,30 +145,20 @@ int main(int argc, char** argv)
       CMAKE_FLAGS
       -DCOMPILE_DEFINITIONS:STRING=${MACRO_CHECK_SYMBOL_EXISTS_FLAGS}
       "${CMAKE_SYMBOL_EXISTS_INCLUDES}"
-      OUTPUT_VARIABLE OUTPUT)
+      )
     if(${VARIABLE})
       if(NOT CMAKE_REQUIRED_QUIET)
         message(CHECK_PASS "found")
       endif()
       set(${VARIABLE} 1 CACHE INTERNAL "Have symbol ${SYMBOL}")
-      file(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeOutput.log
-        "Determining if the ${SYMBOL} "
-        "exist passed with the following output:\n"
-        "${OUTPUT}\nFile ${SOURCEFILE}:\n"
-        "${_CSE_SOURCE}\n")
     else()
       if(NOT CMAKE_REQUIRED_QUIET)
         message(CHECK_FAIL "not found")
       endif()
       set(${VARIABLE} "" CACHE INTERNAL "Have symbol ${SYMBOL}")
-      file(APPEND ${CMAKE_BINARY_DIR}${CMAKE_FILES_DIRECTORY}/CMakeError.log
-        "Determining if the ${SYMBOL} "
-        "exist failed with the following output:\n"
-        "${OUTPUT}\nFile ${SOURCEFILE}:\n"
-        "${_CSE_SOURCE}\n")
     endif()
     unset(_CSE_SOURCE)
   endif()
 endmacro()
 
-cmake_policy(POP)
+endblock()

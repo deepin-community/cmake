@@ -14,12 +14,14 @@
 #include <utility>
 #include <vector>
 
+#include <cm/optional>
+#include <cm/string_view>
+
 #include "cmsys/RegularExpression.hxx"
 
 #include "cmCTest.h"
 #include "cmCTestGenericHandler.h"
-#include "cmCTestResourceSpec.h"
-#include "cmCTestTypes.h"
+#include "cmCTestTypes.h" // IWYU pragma: keep
 #include "cmDuration.h"
 #include "cmListFileCache.h"
 #include "cmValue.h"
@@ -117,12 +119,16 @@ public:
     bool operator!=(const cmCTestTestResourceRequirement& other) const;
   };
 
-  // NOTE: This struct is Saved/Restored
-  // in cmCTestTestHandler, if you add to this class
-  // then you must add the new members to that code or
-  // ctest -j N will break for that feature
+  struct Signal
+  {
+    int Number = 0;
+    std::string Name;
+  };
+
   struct cmCTestTestProperties
   {
+    void AppendError(cm::string_view err);
+    cm::optional<std::string> Error;
     std::string Name;
     std::string Directory;
     std::vector<std::string> Args;
@@ -139,22 +145,23 @@ public:
     std::vector<std::pair<cmsys::RegularExpression, std::string>>
       TimeoutRegularExpressions;
     std::map<std::string, std::string> Measurements;
-    bool IsInBasedOnREOptions;
-    bool WillFail;
-    bool Disabled;
-    float Cost;
-    int PreviousRuns;
-    bool RunSerial;
-    cmDuration Timeout;
-    bool ExplicitTimeout;
+    bool IsInBasedOnREOptions = true;
+    bool WillFail = false;
+    bool Disabled = false;
+    float Cost = 0;
+    int PreviousRuns = 0;
+    bool RunSerial = false;
+    cm::optional<cmDuration> Timeout;
+    cm::optional<Signal> TimeoutSignal;
+    cm::optional<cmDuration> TimeoutGracePeriod;
     cmDuration AlternateTimeout;
-    int Index;
+    int Index = 0;
     // Requested number of process slots
-    int Processors;
-    bool WantAffinity;
+    int Processors = 1;
+    bool WantAffinity = false;
     std::vector<size_t> Affinity;
     // return code of test which will mark test as "not run"
-    int SkipReturnCode;
+    int SkipReturnCode = -1;
     std::vector<std::string> Environment;
     std::vector<std::string> EnvironmentModification;
     std::vector<std::string> Labels;
@@ -164,6 +171,7 @@ public:
     std::set<std::string> FixturesRequired;
     std::set<std::string> RequireSuccessDepends;
     std::vector<std::vector<cmCTestTestResourceRequirement>> ResourceGroups;
+    std::string GeneratedResourceSpecFile;
     // Private test generator properties used to track backtraces
     cmListFileBacktrace Backtrace;
   };
@@ -175,17 +183,17 @@ public:
     std::string Reason;
     std::string FullCommandLine;
     std::string Environment;
-    cmDuration ExecutionTime;
-    std::int64_t ReturnValue;
-    int Status;
+    cmDuration ExecutionTime = cmDuration::zero();
+    std::int64_t ReturnValue = 0;
+    int Status = NOT_RUN;
     std::string ExceptionStatus;
     bool CompressOutput;
     std::string CompletionStatus;
     std::string CustomCompletionStatus;
     std::string Output;
     std::string TestMeasurementsOutput;
-    int TestCount;
-    cmCTestTestProperties* Properties;
+    int TestCount = 0;
+    cmCTestTestProperties* Properties = nullptr;
   };
 
   struct cmCTestTestResultLess
@@ -311,7 +319,7 @@ private:
 
   // compute the lists of tests that will actually run
   // based on LastTestFailed.log
-  void ComputeTestListForRerunFailed();
+  bool ComputeTestListForRerunFailed();
 
   // add required setup/cleanup tests not already in the
   // list of tests to be run and update dependencies between
@@ -352,8 +360,6 @@ private:
   cmsys::RegularExpression IncludeTestsRegularExpression;
   cmsys::RegularExpression ExcludeTestsRegularExpression;
 
-  bool UseResourceSpec;
-  cmCTestResourceSpec ResourceSpec;
   std::string ResourceSpecFile;
 
   void RecordCustomTestMeasurements(cmXMLWriter& xml, std::string content);

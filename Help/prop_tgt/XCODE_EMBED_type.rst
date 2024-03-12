@@ -16,14 +16,32 @@ The supported values for ``<type>`` are:
 ``APP_EXTENSIONS``
   .. versionadded:: 3.21
 
-  The specified items will be added to the ``Embed App Extensions`` build phase.
+  The specified items will be added to the ``Embed App Extensions`` build
+  phase, with ``Destination`` set to ``PlugIns and Foundation Extensions``
   They must be CMake target names.
+
+``EXTENSIONKIT_EXTENSIONS``
+  .. versionadded:: 3.26
+
+  The specified items will be added to the ``Embed App Extensions`` build
+  phase, with ``Destination`` set to ``ExtensionKit Extensions``
+  They must be CMake target names, and should likely have the
+  ``XCODE_PRODUCT_TYPE`` target property set to
+  ``com.apple.product-type.extensionkit-extension``
+  as well as the  ``XCODE_EXPLICIT_FILE_TYPE`` to
+  ``wrapper.extensionkit-extension``
 
 ``PLUGINS``
   .. versionadded:: 3.23
 
   The specified items will be added to the ``Embed PlugIns`` build phase.
   They must be CMake target names.
+
+``RESOURCES``
+  .. versionadded:: 3.28
+
+  The specified items will be added to the ``Embed Resources`` build phase.
+  They must be CMake target names or folder paths.
 
 See also :prop_tgt:`XCODE_EMBED_<type>_PATH`,
 :prop_tgt:`XCODE_EMBED_<type>_REMOVE_HEADERS_ON_COPY` and
