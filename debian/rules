@@ -9,6 +9,16 @@ export DEB_CXXFLAGS_MAINT_APPEND := $(shell dpkg-buildflags --get CPPFLAGS)
 export DEB_CFLAGS_MAINT_APPEND := $(shell dpkg-buildflags --get CPPFLAGS)
 export DEB_LDFLAGS_MAINT_APPEND := -Wl,--as-needed
 
+# Note: Load this first for $DEB_BUILD_ARCH.
+include /usr/share/dpkg/architecture.mk
+
+# Note: _STRIP operations needs to be done before including buildflags.mk.
+ifeq ($(DEB_BUILD_ARCH),loong64)
+        # FIXME: -mlsx breaks re2c testsuite and produces a broken binary with
+        # GCC 12.3.0-17deepin2 (with backported LSX/LASX support).
+        export DEB_CFLAGS_MAINT_STRIP = -mlsx
+        export DEB_CXXFLAGS_MAINT_STRIP = -mlsx
+endif
 
 BUILD_DATE = $(shell LC_ALL=C date -u "+%B %d, %Y" -d "@$(SOURCE_DATE_EPOCH)")
 
