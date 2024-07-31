@@ -32,6 +32,7 @@
 #include "cmList.h"
 #include "cmListFileCache.h"
 #include "cmMakefile.h"
+#include "cmMessageType.h"
 #include "cmOutputConverter.h"
 #include "cmPolicies.h"
 #include "cmSourceFile.h"
@@ -195,13 +196,6 @@ void cmLocalVisualStudio7Generator::GenerateTarget(cmGeneratorTarget* target)
   this->FortranProject = gg->TargetIsFortranOnly(target);
   this->WindowsCEProject = gg->TargetsWindowsCE();
 
-  // Intel Fortran always uses VS9 format ".vfproj" files.
-  cmGlobalVisualStudioGenerator::VSVersion realVersion = gg->GetVersion();
-  if (this->FortranProject &&
-      gg->GetVersion() >= cmGlobalVisualStudioGenerator::VSVersion::VS12) {
-    gg->SetVersion(cmGlobalVisualStudioGenerator::VSVersion::VS9);
-  }
-
   // add to the list of projects
   target->Target->SetProperty("GENERATOR_FILE_NAME", lname);
   // create the dsp.cmake file
@@ -223,7 +217,8 @@ void cmLocalVisualStudio7Generator::GenerateTarget(cmGeneratorTarget* target)
     this->GlobalGenerator->FileReplacedDuringGenerate(fname);
   }
 
-  gg->SetVersion(realVersion);
+  this->WindowsCEProject = false;
+  this->FortranProject = false;
 }
 
 cmSourceFile* cmLocalVisualStudio7Generator::CreateVCProjBuildRule()
@@ -794,6 +789,9 @@ void cmLocalVisualStudio7Generator::WriteConfiguration(
       target->GetType() == cmStateEnums::OBJECT_LIBRARY
       ? ".lib"
       : cmSystemTools::GetFilenameLastExtension(targetNameFull);
+    if (cm::optional<std::string> fortran = gg->GetPlatformToolsetFortran()) {
+      fout << "\t\t\tUseCompiler=\"" << *fortran << "Compiler\"\n";
+    }
     /* clang-format off */
     fout <<
       "\t\t\tTargetName=\"" << this->EscapeForXML(targetName) << "\"\n"
@@ -1085,6 +1083,16 @@ void cmLocalVisualStudio7Generator::OutputBuildTool(
       cmComputeLinkInformation& cli = *pcli;
       std::string linkLanguage = cli.GetLinkLanguage();
 
+      if (!target->GetLinkerTypeProperty(linkLanguage, configName).empty()) {
+        // Visual Studio 10 or upper is required for this feature
+        this->GetCMakeInstance()->IssueMessage(
+          MessageType::FATAL_ERROR,
+          cmStrCat("'LINKER_TYPE' property, specified on target '",
+                   target->GetName(),
+                   "', is not supported by this generator."),
+          target->GetBacktrace());
+      }
+
       // Compute the variable name to lookup standard libraries for this
       // language.
       std::string standardLibsVar =
@@ -1121,16 +1129,11 @@ void cmLocalVisualStudio7Generator::OutputBuildTool(
         cmStrCat(target->GetPDBDirectory(configName), '/', targetNames.PDB);
       fout << "\t\t\t\tProgramDatabaseFile=\""
            << this->ConvertToXMLOutputPathSingle(temp) << "\"\n";
-      if (targetOptions.IsDebug()) {
+      if (targetOptions.UsingDebugInfo()) {
         fout << "\t\t\t\tGenerateDebugInformation=\"true\"\n";
       }
       if (this->WindowsCEProject) {
-        if (this->GetVersion() <
-            cmGlobalVisualStudioGenerator::VSVersion::VS9) {
-          fout << "\t\t\t\tSubSystem=\"9\"\n";
-        } else {
-          fout << "\t\t\t\tSubSystem=\"8\"\n";
-        }
+        fout << "\t\t\t\tSubSystem=\"8\"\n";
       }
       std::string stackVar = cmStrCat("CMAKE_", linkLanguage, "_STACK_SIZE");
       cmValue stackVal = this->Makefile->GetDefinition(stackVar);
@@ -1160,6 +1163,16 @@ void cmLocalVisualStudio7Generator::OutputBuildTool(
       }
       cmComputeLinkInformation& cli = *pcli;
       std::string linkLanguage = cli.GetLinkLanguage();
+
+      if (!target->GetLinkerTypeProperty(linkLanguage, configName).empty()) {
+        // Visual Studio 10 or upper is required for this feature
+        this->GetCMakeInstance()->IssueMessage(
+          MessageType::FATAL_ERROR,
+          cmStrCat("'LINKER_TYPE' property, specified on target '",
+                   target->GetName(),
+                   "', is not supported by this generator."),
+          target->GetBacktrace());
+      }
 
       bool isWin32Executable = target->IsWin32Executable(configName);
 
@@ -1199,16 +1212,11 @@ void cmLocalVisualStudio7Generator::OutputBuildTool(
         target->GetPDBDirectory(configName));
       fout << "\t\t\t\tProgramDatabaseFile=\"" << path << "/"
            << targetNames.PDB << "\"\n";
-      if (targetOptions.IsDebug()) {
+      if (targetOptions.UsingDebugInfo()) {
         fout << "\t\t\t\tGenerateDebugInformation=\"true\"\n";
       }
       if (this->WindowsCEProject) {
-        if (this->GetVersion() <
-            cmGlobalVisualStudioGenerator::VSVersion::VS9) {
-          fout << "\t\t\t\tSubSystem=\"9\"\n";
-        } else {
-          fout << "\t\t\t\tSubSystem=\"8\"\n";
-        }
+        fout << "\t\t\t\tSubSystem=\"8\"\n";
 
         if (!linkOptions.GetFlag("EntryPointSymbol")) {
           const char* entryPointSymbol = targetOptions.UsingUnicode()

@@ -9,7 +9,7 @@ Uploaders:
 Build-Depends:
  debhelper-compat (= 13),
  cmake <cross>,
- freebsd-glue [kfreebsd-any],
+ git <!nocheck>,
  libarchive-dev (>= 3.3.3) <!pkg.cmake.bootstrap>,
  libcppdap-dev <!pkg.cmake.bootstrap>,
  libcurl4-openssl-dev <!pkg.cmake.bootstrap> | libcurl-ssl-dev <!pkg.cmake.bootstrap>,
@@ -27,7 +27,7 @@ Build-Depends:
 Build-Depends-Indep:
  dh-sequence-sphinxdoc,
 Rules-Requires-Root: no
-Standards-Version: 4.6.2
+Standards-Version: 4.7.0
 Vcs-Git: https://salsa.debian.org/cmake-team/cmake.git
 Vcs-Browser: https://salsa.debian.org/cmake-team/cmake
 Homepage: https://cmake.org/

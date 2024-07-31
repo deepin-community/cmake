@@ -4,10 +4,12 @@
 
 #include <algorithm>
 #include <array>
+#include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <initializer_list>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <stdexcept>
@@ -48,6 +50,7 @@
 #include "cmExternalMakefileProjectGenerator.h"
 #include "cmFileTimeCache.h"
 #include "cmGeneratorTarget.h"
+#include "cmGlobCacheEntry.h"
 #include "cmGlobalGenerator.h"
 #include "cmGlobalGeneratorFactory.h"
 #include "cmLinkLineComputer.h"
@@ -96,7 +99,6 @@
 #    include "cmGlobalNMakeMakefileGenerator.h"
 #    include "cmGlobalVisualStudio12Generator.h"
 #    include "cmGlobalVisualStudio14Generator.h"
-#    include "cmGlobalVisualStudio9Generator.h"
 #    include "cmGlobalVisualStudioVersionedGenerator.h"
 #    include "cmVSSetupHelper.h"
 
@@ -1575,14 +1577,15 @@ void cmake::SetArgs(const std::vector<std::string>& args)
     if (!expandedPreset->ArchitectureStrategy ||
         expandedPreset->ArchitectureStrategy ==
           cmCMakePresetsGraph::ArchToolsetStrategy::Set) {
-      if (!this->GeneratorPlatformSet) {
+      if (!this->GeneratorPlatformSet &&
+          !expandedPreset->Architecture.empty()) {
         this->SetGeneratorPlatform(expandedPreset->Architecture);
       }
     }
     if (!expandedPreset->ToolsetStrategy ||
         expandedPreset->ToolsetStrategy ==
           cmCMakePresetsGraph::ArchToolsetStrategy::Set) {
-      if (!this->GeneratorToolsetSet) {
+      if (!this->GeneratorToolsetSet && !expandedPreset->Toolset.empty()) {
         this->SetGeneratorToolset(expandedPreset->Toolset);
       }
     }
@@ -2345,16 +2348,16 @@ int cmake::Configure()
   // so we cannot rely on command line options alone. Always ensure our
   // messenger is in sync with the cache.
   cmValue value = this->State->GetCacheEntryValue("CMAKE_WARN_DEPRECATED");
-  this->Messenger->SetSuppressDeprecatedWarnings(value && cmIsOff(*value));
+  this->Messenger->SetSuppressDeprecatedWarnings(value && value.IsOff());
 
   value = this->State->GetCacheEntryValue("CMAKE_ERROR_DEPRECATED");
-  this->Messenger->SetDeprecatedWarningsAsErrors(cmIsOn(value));
+  this->Messenger->SetDeprecatedWarningsAsErrors(value.IsOn());
 
   value = this->State->GetCacheEntryValue("CMAKE_SUPPRESS_DEVELOPER_WARNINGS");
-  this->Messenger->SetSuppressDevWarnings(cmIsOn(value));
+  this->Messenger->SetSuppressDevWarnings(value.IsOn());
 
   value = this->State->GetCacheEntryValue("CMAKE_SUPPRESS_DEVELOPER_ERRORS");
-  this->Messenger->SetDevWarningsAsErrors(value && cmIsOff(*value));
+  this->Messenger->SetDevWarningsAsErrors(value && value.IsOff());
 
   int ret = this->ActualConfigure();
   cmValue delCacheVars =
@@ -2394,8 +2397,15 @@ int cmake::ActualConfigure()
   cmSystemTools::RemoveADirectory(redirectsDir);
   if (!cmSystemTools::MakeDirectory(redirectsDir)) {
     cmSystemTools::Error(
-      "Unable to (re)create the private pkgRedirects directory:\n" +
-      redirectsDir);
+      cmStrCat("Unable to (re)create the private pkgRedirects directory:\n  ",
+               redirectsDir,
+               "\n"
+               "This may be caused by not having read/write access to "
+               "the build directory.\n"
+               "Try specifying a location with read/write access like:\n"
+               "  cmake -B build\n"
+               "If using a CMake presets file, ensure that preset parameter\n"
+               "'binaryDir' expands to a writable directory.\n"));
     return -1;
   }
   this->AddCacheEntry("CMAKE_FIND_PACKAGE_REDIRECTS_DIR", redirectsDir,
@@ -2507,6 +2517,16 @@ int cmake::ActualConfigure()
                         "Name of generator toolset.", cmStateEnums::INTERNAL);
   }
 
+  if (!this->State->GetInitializedCacheValue("CMAKE_TEST_LAUNCHER")) {
+    cm::optional<std::string> testLauncher =
+      cmSystemTools::GetEnvVar("CMAKE_TEST_LAUNCHER");
+    if (testLauncher && !testLauncher->empty()) {
+      std::string message = "Test launcher to run tests executable.";
+      this->AddCacheEntry("CMAKE_TEST_LAUNCHER", *testLauncher, message,
+                          cmStateEnums::STRING);
+    }
+  }
+
   if (!this->State->GetInitializedCacheValue(
         "CMAKE_CROSSCOMPILING_EMULATOR")) {
     cm::optional<std::string> emulator =
@@ -2539,7 +2559,22 @@ int cmake::ActualConfigure()
 #endif
 
   // actually do the configure
+  auto startTime = std::chrono::steady_clock::now();
   this->GlobalGenerator->Configure();
+  auto endTime = std::chrono::steady_clock::now();
+
+  if (this->GetWorkingMode() == cmake::NORMAL_MODE) {
+    std::ostringstream msg;
+    if (cmSystemTools::GetErrorOccurredFlag()) {
+      msg << "Configuring incomplete, errors occurred!";
+    } else {
+      auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(
+        endTime - startTime);
+      msg << "Configuring done (" << std::fixed << std::setprecision(1)
+          << ms.count() / 1000.0L << "s)";
+    }
+    this->UpdateProgress(msg.str(), -1);
+  }
 
 #if !defined(CMAKE_BOOTSTRAP)
   this->ConfigureLog.reset();
@@ -2617,7 +2652,6 @@ std::unique_ptr<cmGlobalGenerator> cmake::EvaluateDefaultGlobalGenerator()
   static VSVersionedGenerator const vsGenerators[] = {
     { "14.0", "Visual Studio 14 2015" }, //
     { "12.0", "Visual Studio 12 2013" }, //
-    { "9.0", "Visual Studio 9 2008" }
   };
   static const char* const vsEntries[] = {
     "\\Setup\\VC;ProductDir", //
@@ -2801,7 +2835,7 @@ int cmake::Run(const std::vector<std::string>& args, bool noconfigure)
     if (cmSystemTools::GetErrorOccurredFlag()) {
       return -1;
     }
-    return 0;
+    return this->HasScriptModeExitCode() ? this->GetScriptModeExitCode() : 0;
   }
 
   // If MAKEFLAGS are given in the environment, remove the environment
@@ -2872,10 +2906,20 @@ int cmake::Generate()
   auto profilingRAII = this->CreateProfilingEntry("project", "generate");
 #endif
 
+  auto startTime = std::chrono::steady_clock::now();
   if (!this->GlobalGenerator->Compute()) {
     return -1;
   }
   this->GlobalGenerator->Generate();
+  auto endTime = std::chrono::steady_clock::now();
+  {
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(endTime -
+                                                                    startTime);
+    std::ostringstream msg;
+    msg << "Generating done (" << std::fixed << std::setprecision(1)
+        << ms.count() / 1000.0L << "s)";
+    this->UpdateProgress(msg.str(), -1);
+  }
   if (!this->GraphVizFile.empty()) {
     std::cout << "Generate graphviz: " << this->GraphVizFile << '\n';
     this->GenerateGraphViz(this->GraphVizFile);
@@ -2906,13 +2950,13 @@ void cmake::AddCacheEntry(const std::string& key, cmValue value,
   this->UnwatchUnusedCli(key);
 
   if (key == "CMAKE_WARN_DEPRECATED"_s) {
-    this->Messenger->SetSuppressDeprecatedWarnings(value && cmIsOff(value));
+    this->Messenger->SetSuppressDeprecatedWarnings(value && value.IsOff());
   } else if (key == "CMAKE_ERROR_DEPRECATED"_s) {
-    this->Messenger->SetDeprecatedWarningsAsErrors(cmIsOn(value));
+    this->Messenger->SetDeprecatedWarningsAsErrors(value.IsOn());
   } else if (key == "CMAKE_SUPPRESS_DEVELOPER_WARNINGS"_s) {
-    this->Messenger->SetSuppressDevWarnings(cmIsOn(value));
+    this->Messenger->SetSuppressDevWarnings(value.IsOn());
   } else if (key == "CMAKE_SUPPRESS_DEVELOPER_ERRORS"_s) {
-    this->Messenger->SetDevWarningsAsErrors(value && cmIsOff(value));
+    this->Messenger->SetDevWarningsAsErrors(value && value.IsOff());
   }
 }
 
@@ -2931,16 +2975,17 @@ std::string const& cmake::GetGlobVerifyStamp() const
   return this->State->GetGlobVerifyStamp();
 }
 
-void cmake::AddGlobCacheEntry(bool recurse, bool listDirectories,
-                              bool followSymlinks, const std::string& relative,
-                              const std::string& expression,
-                              const std::vector<std::string>& files,
+void cmake::AddGlobCacheEntry(const cmGlobCacheEntry& entry,
                               const std::string& variable,
                               cmListFileBacktrace const& backtrace)
 {
-  this->State->AddGlobCacheEntry(recurse, listDirectories, followSymlinks,
-                                 relative, expression, files, variable,
-                                 backtrace, this->Messenger.get());
+  this->State->AddGlobCacheEntry(entry, variable, backtrace,
+                                 this->Messenger.get());
+}
+
+std::vector<cmGlobCacheEntry> cmake::GetGlobCacheEntries() const
+{
+  return this->State->GetGlobCacheEntries();
 }
 
 std::vector<std::string> cmake::GetAllExtensions() const
@@ -3001,7 +3046,6 @@ void cmake::AddDefaultGenerators()
     cmGlobalVisualStudioVersionedGenerator::NewFactory15());
   this->Generators.push_back(cmGlobalVisualStudio14Generator::NewFactory());
   this->Generators.push_back(cmGlobalVisualStudio12Generator::NewFactory());
-  this->Generators.push_back(cmGlobalVisualStudio9Generator::NewFactory());
   this->Generators.push_back(cmGlobalBorlandMakefileGenerator::NewFactory());
   this->Generators.push_back(cmGlobalNMakeMakefileGenerator::NewFactory());
   this->Generators.push_back(cmGlobalJOMMakefileGenerator::NewFactory());
@@ -3751,7 +3795,7 @@ int cmake::Build(int jobs, std::string dir, std::vector<std::string> targets,
   }
   projName = *cachedProjectName;
 
-  if (cmIsOn(this->State->GetCacheEntryValue("CMAKE_VERBOSE_MAKEFILE"))) {
+  if (this->State->GetCacheEntryValue("CMAKE_VERBOSE_MAKEFILE").IsOn()) {
     verbose = true;
   }
 
@@ -3761,22 +3805,12 @@ int cmake::Build(int jobs, std::string dir, std::vector<std::string> targets,
   // itself, there is the risk of building an out-of-date solution file due
   // to limitations of the underlying build system.
   std::string const stampList = cachePath + "/" + "CMakeFiles/" +
-    cmGlobalVisualStudio9Generator::GetGenerateStampList();
+    cmGlobalVisualStudio12Generator::GetGenerateStampList();
 
   // Note that the stampList file only exists for VS generators.
   if (cmSystemTools::FileExists(stampList)) {
 
-    // Check if running for Visual Studio 9 - we need to explicitly run
-    // the glob verification script before starting the build
     this->AddScriptingCommands();
-    if (this->GlobalGenerator->MatchesGeneratorName("Visual Studio 9 2008")) {
-      std::string const globVerifyScript =
-        cachePath + "/" + "CMakeFiles/" + "VerifyGlobs.cmake";
-      if (cmSystemTools::FileExists(globVerifyScript)) {
-        std::vector<std::string> args;
-        this->ReadListFile(args, globVerifyScript);
-      }
-    }
 
     if (!cmakeCheckStampList(stampList)) {
       // Correctly initialize the home (=source) and home output (=binary)

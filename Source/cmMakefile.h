@@ -25,6 +25,7 @@
 
 #include "cmAlgorithms.h"
 #include "cmCustomCommand.h"
+#include "cmFindPackageStack.h"
 #include "cmFunctionBlocker.h"
 #include "cmListFileCache.h"
 #include "cmMessageType.h" // IWYU pragma: keep
@@ -660,6 +661,11 @@ public:
   cmListFileBacktrace GetBacktrace() const;
 
   /**
+   * Get the current stack of find_package calls.
+   */
+  cmFindPackageStack GetFindPackageStack() const;
+
+  /**
    * Get the vector of  files created by this makefile
    */
   const std::vector<std::string>& GetOutputFiles() const
@@ -797,7 +803,7 @@ public:
   /**
    * Return a location of a file in cmake or custom modules directory
    */
-  std::string GetModulesFile(const std::string& name) const
+  std::string GetModulesFile(cm::string_view name) const
   {
     bool system;
     std::string debugBuffer;
@@ -807,13 +813,13 @@ public:
   /**
    * Return a location of a file in cmake or custom modules directory
    */
-  std::string GetModulesFile(const std::string& name, bool& system) const
+  std::string GetModulesFile(cm::string_view name, bool& system) const
   {
     std::string debugBuffer;
     return this->GetModulesFile(name, system, false, debugBuffer);
   }
 
-  std::string GetModulesFile(const std::string& name, bool& system, bool debug,
+  std::string GetModulesFile(cm::string_view name, bool& system, bool debug,
                              std::string& debugBuffer) const;
 
   //! Set/Get a property of this directory
@@ -1020,6 +1026,15 @@ public:
   // searches
   std::deque<std::vector<std::string>> FindPackageRootPathStack;
 
+  class FindPackageStackRAII
+  {
+    cmMakefile* Makefile;
+
+  public:
+    FindPackageStackRAII(cmMakefile* mf, std::string const& pkg);
+    ~FindPackageStackRAII();
+  };
+
   class DebugFindPkgRAII
   {
     cmMakefile* Makefile;
@@ -1209,6 +1224,9 @@ private:
 
   std::vector<BT<GeneratorAction>> GeneratorActions;
   bool GeneratorActionsInvoked = false;
+
+  cmFindPackageStack FindPackageStack;
+  unsigned int FindPackageStackNextIndex = 0;
 
   bool DebugFindPkg = false;
 

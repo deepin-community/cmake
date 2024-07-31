@@ -727,7 +727,7 @@ std::string cmFileAPI::NoSupportedVersion(
 // The "codemodel" object kind.
 
 // Update Help/manual/cmake-file-api.7.rst when updating this constant.
-static unsigned int const CodeModelV2Minor = 6;
+static unsigned int const CodeModelV2Minor = 7;
 
 void cmFileAPI::BuildClientRequestCodeModel(
   ClientRequest& r, std::vector<RequestVersion> const& versions)
@@ -830,7 +830,7 @@ Json::Value cmFileAPI::BuildCache(Object const& object)
 
 // The "cmakeFiles" object kind.
 
-static unsigned int const CMakeFilesV1Minor = 0;
+static unsigned int const CMakeFilesV1Minor = 1;
 
 void cmFileAPI::BuildClientRequestCMakeFiles(
   ClientRequest& r, std::vector<RequestVersion> const& versions)

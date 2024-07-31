@@ -214,11 +214,13 @@ add_custom_command(OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/generated_extern.cxx
 
 add_executable(CustomCommandUsingTargetTest main.cxx ${CMAKE_CURRENT_BINARY_DIR}/generated_extern.cxx )
 
+add_executable(CustomCommandUsingTargetTestAlias ALIAS CustomCommandUsingTargetTest )
+
 add_custom_target(RunTarget
   COMMAND generator_extern ${CMAKE_CURRENT_BINARY_DIR}/run_target.cxx
   )
 
-add_custom_command(TARGET CustomCommandUsingTargetTest POST_BUILD
+add_custom_command(TARGET CustomCommandUsingTargetTestAlias POST_BUILD
                    COMMAND dummy_generator ${CMAKE_CURRENT_BINARY_DIR}/generated_dummy.cxx)
 
 add_subdirectory(GeneratorInExtraDir)
@@ -586,3 +588,12 @@ add_custom_target(drive_mac_fw ALL DEPENDS mac_fw.txt)
 # Test empty COMMANDs are omitted
 add_executable(empty_command empty_command.cxx)
 add_custom_command(TARGET empty_command POST_BUILD COMMAND $<0:date>)
+
+# Test OUTPUT allows filenames containing "#" on generators that support this
+if(NOT CMAKE_GENERATOR MATCHES "Borland Makefiles")
+  add_custom_target(file_with_hash ALL DEPENDS "${PROJECT_BINARY_DIR}/hash#in#name.txt")
+  add_custom_command(
+    OUTPUT "${PROJECT_BINARY_DIR}/hash#in#name.txt"
+    COMMAND ${CMAKE_COMMAND} -E touch "${PROJECT_BINARY_DIR}/hash#in#name.txt"
+  )
+endif()

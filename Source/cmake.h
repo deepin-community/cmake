@@ -53,6 +53,7 @@ class cmMakefile;
 class cmMessenger;
 class cmVariableWatch;
 struct cmBuildOptions;
+struct cmGlobCacheEntry;
 
 /** \brief Represents a cmake invocation.
  *
@@ -351,12 +352,10 @@ public:
   bool DoWriteGlobVerifyTarget() const;
   std::string const& GetGlobVerifyScript() const;
   std::string const& GetGlobVerifyStamp() const;
-  void AddGlobCacheEntry(bool recurse, bool listDirectories,
-                         bool followSymlinks, const std::string& relative,
-                         const std::string& expression,
-                         const std::vector<std::string>& files,
+  void AddGlobCacheEntry(const cmGlobCacheEntry& entry,
                          const std::string& variable,
                          cmListFileBacktrace const& bt);
+  std::vector<cmGlobCacheEntry> GetGlobCacheEntries() const;
 
   /**
    * Get the system information and write it to the file specified
@@ -835,7 +834,13 @@ private:
   std::string DebuggerDapLogFile;
 #endif
 
+  cm::optional<int> ScriptModeExitCode;
+
 public:
+  bool HasScriptModeExitCode() const { return ScriptModeExitCode.has_value(); }
+  void SetScriptModeExitCode(int code) { ScriptModeExitCode = code; }
+  int GetScriptModeExitCode() const { return ScriptModeExitCode.value_or(-1); }
+
   static cmDocumentationEntry CMAKE_STANDARD_OPTIONS_TABLE[18];
 };
 

@@ -27,6 +27,8 @@ Environment Variables that Change Behavior
    /envvar/CMAKE_MAXIMUM_RECURSION_DEPTH
    /envvar/CMAKE_PREFIX_PATH
    /envvar/CMAKE_PROGRAM_PATH
+   /envvar/CMAKE_TLS_VERIFY
+   /envvar/CMAKE_TLS_VERSION
    /envvar/SSL_CERT_DIR
    /envvar/SSL_CERT_FILE
 
@@ -50,12 +52,14 @@ Environment Variables that Control the Build
    /envvar/CMAKE_GENERATOR_PLATFORM
    /envvar/CMAKE_GENERATOR_TOOLSET
    /envvar/CMAKE_INSTALL_MODE
+   /envvar/CMAKE_INSTALL_PREFIX
    /envvar/CMAKE_LANG_COMPILER_LAUNCHER
    /envvar/CMAKE_LANG_IMPLICIT_LINK_DIRECTORIES_EXCLUDE
    /envvar/CMAKE_LANG_LINKER_LAUNCHER
    /envvar/CMAKE_MSVCIDE_RUN_PATH
    /envvar/CMAKE_NO_VERBOSE
    /envvar/CMAKE_OSX_ARCHITECTURES
+   /envvar/CMAKE_TEST_LAUNCHER
    /envvar/CMAKE_TOOLCHAIN_FILE
    /envvar/DESTDIR
    /envvar/LDFLAGS
@@ -88,7 +92,9 @@ Environment Variables for Languages
    /envvar/ISPC
    /envvar/ISPCFLAGS
    /envvar/OBJC
+   /envvar/OBJCFLAGS
    /envvar/OBJCXX
+   /envvar/OBJCXXFLAGS
    /envvar/RC
    /envvar/RCFLAGS
    /envvar/SWIFTC

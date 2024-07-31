@@ -1,3 +1,58 @@
+cmake (3.30.1-1) unstable; urgency=medium
+
+  * New upstream version 3.30.1
+
+ -- Timo Röhling <roehling@debian.org>  Mon, 22 Jul 2024 20:57:46 +0200
+
+cmake (3.30.0-1) unstable; urgency=medium
+
+  * New upstream version 3.30.0
+  * Test suite needs working Git now
+
+ -- Timo Röhling <roehling@debian.org>  Tue, 09 Jul 2024 15:36:28 +0200
+
+cmake (3.29.6-1) unstable; urgency=medium
+
+  * Bump Standards-Version to 4.7.0
+  * Remove obsolete CMAKE_USE_RELATIVE_PATHS=ON from build
+  * New upstream version 3.29.6
+
+ -- Timo Röhling <roehling@debian.org>  Thu, 20 Jun 2024 15:41:05 +0200
+
+cmake (3.29.5-1) unstable; urgency=medium
+
+  * New upstream version 3.29.5
+
+ -- Timo Röhling <roehling@debian.org>  Sat, 08 Jun 2024 23:24:40 +0200
+
+cmake (3.29.4-1) unstable; urgency=medium
+
+  [ Aurelien Jarno ]
+  * Drop kfreebsd-* specific build-depends, the ports have been removed
+
+  [ Timo Röhling ]
+  * New upstream version 3.29.4
+
+ -- Timo Röhling <roehling@debian.org>  Tue, 04 Jun 2024 10:54:40 +0200
+
+cmake (3.29.3-1) unstable; urgency=medium
+
+  * New upstream version 3.29.3
+
+ -- Timo Röhling <roehling@debian.org>  Sat, 11 May 2024 23:26:01 +0200
+
+cmake (3.29.2-2) unstable; urgency=medium
+
+  * Upload to unstable.
+
+ -- Timo Röhling <roehling@debian.org>  Wed, 24 Apr 2024 10:47:53 +0200
+
+cmake (3.29.2-1) experimental; urgency=medium
+
+  * New upstream version 3.29.2
+
+ -- Timo Röhling <roehling@debian.org>  Sun, 14 Apr 2024 22:47:16 +0200
+
 cmake (3.28.3-1) unstable; urgency=medium
 
   * New upstream version 3.28.3

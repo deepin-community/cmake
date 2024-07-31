@@ -7,8 +7,6 @@
 #include <cstring>
 #include <ratio>
 
-#include "cmsys/Process.h"
-
 #include "cmBuildOptions.h"
 #include "cmCTest.h"
 #include "cmCTestTestHandler.h"
@@ -308,12 +306,11 @@ int cmCTestBuildAndTestHandler::RunCMakeAndTest(std::string* outstring)
     return 1;
   }
 
-  std::vector<const char*> testCommand;
-  testCommand.push_back(fullPath.c_str());
+  std::vector<std::string> testCommand;
+  testCommand.push_back(fullPath);
   for (std::string const& testCommandArg : this->TestCommandArgs) {
-    testCommand.push_back(testCommandArg.c_str());
+    testCommand.push_back(testCommandArg);
   }
-  testCommand.push_back(nullptr);
   std::string outs;
   int retval = 0;
   // run the test from the this->BuildRunDir if set
@@ -349,10 +346,10 @@ int cmCTestBuildAndTestHandler::RunCMakeAndTest(std::string* outstring)
     }
   }
 
-  int runTestRes = this->CTest->RunTest(testCommand, &outs, &retval, nullptr,
-                                        remainingTime, nullptr);
+  bool runTestRes = this->CTest->RunTest(testCommand, &outs, &retval, nullptr,
+                                         remainingTime, nullptr);
 
-  if (runTestRes != cmsysProcess_State_Exited || retval != 0) {
+  if (!runTestRes || retval != 0) {
     out << "Test command failed: " << testCommand[0] << "\n";
     retval = 1;
   }
@@ -368,8 +365,9 @@ int cmCTestBuildAndTestHandler::RunCMakeAndTest(std::string* outstring)
 
 int cmCTestBuildAndTestHandler::ProcessCommandLineArguments(
   const std::string& currentArg, size_t& idx,
-  const std::vector<std::string>& allArgs)
+  const std::vector<std::string>& allArgs, bool& validArg)
 {
+  bool buildAndTestArg = true;
   // --build-and-test options
   if (cmHasLiteralPrefix(currentArg, "--build-and-test") &&
       idx < allArgs.size() - 1) {
@@ -388,78 +386,68 @@ int cmCTestBuildAndTestHandler::ProcessCommandLineArguments(
                    << std::endl);
       return 0;
     }
-  }
-  if (cmHasLiteralPrefix(currentArg, "--build-target") &&
-      idx < allArgs.size() - 1) {
+  } else if (cmHasLiteralPrefix(currentArg, "--build-target") &&
+             idx < allArgs.size() - 1) {
     idx++;
     this->BuildTargets.push_back(allArgs[idx]);
-  }
-  if (cmHasLiteralPrefix(currentArg, "--build-nocmake")) {
+  } else if (cmHasLiteralPrefix(currentArg, "--build-nocmake")) {
     this->BuildNoCMake = true;
-  }
-  if (cmHasLiteralPrefix(currentArg, "--build-run-dir") &&
-      idx < allArgs.size() - 1) {
+  } else if (cmHasLiteralPrefix(currentArg, "--build-run-dir") &&
+             idx < allArgs.size() - 1) {
     idx++;
     this->BuildRunDir = allArgs[idx];
-  }
-  if (cmHasLiteralPrefix(currentArg, "--build-two-config")) {
+  } else if (cmHasLiteralPrefix(currentArg, "--build-two-config")) {
     this->BuildTwoConfig = true;
-  }
-  if (cmHasLiteralPrefix(currentArg, "--build-exe-dir") &&
-      idx < allArgs.size() - 1) {
+  } else if (cmHasLiteralPrefix(currentArg, "--build-exe-dir") &&
+             idx < allArgs.size() - 1) {
     idx++;
     this->ExecutableDirectory = allArgs[idx];
-  }
-  if (cmHasLiteralPrefix(currentArg, "--test-timeout") &&
-      idx < allArgs.size() - 1) {
+  } else if (cmHasLiteralPrefix(currentArg, "--test-timeout") &&
+             idx < allArgs.size() - 1) {
     idx++;
     this->Timeout = cmDuration(atof(allArgs[idx].c_str()));
-  }
-  if (currentArg == "--build-generator" && idx < allArgs.size() - 1) {
+  } else if (currentArg == "--build-generator" && idx < allArgs.size() - 1) {
     idx++;
     this->BuildGenerator = allArgs[idx];
-  }
-  if (currentArg == "--build-generator-platform" && idx < allArgs.size() - 1) {
+  } else if (currentArg == "--build-generator-platform" &&
+             idx < allArgs.size() - 1) {
     idx++;
     this->BuildGeneratorPlatform = allArgs[idx];
-  }
-  if (currentArg == "--build-generator-toolset" && idx < allArgs.size() - 1) {
+  } else if (currentArg == "--build-generator-toolset" &&
+             idx < allArgs.size() - 1) {
     idx++;
     this->BuildGeneratorToolset = allArgs[idx];
-  }
-  if (cmHasLiteralPrefix(currentArg, "--build-project") &&
-      idx < allArgs.size() - 1) {
+  } else if (cmHasLiteralPrefix(currentArg, "--build-project") &&
+             idx < allArgs.size() - 1) {
     idx++;
     this->BuildProject = allArgs[idx];
-  }
-  if (cmHasLiteralPrefix(currentArg, "--build-makeprogram") &&
-      idx < allArgs.size() - 1) {
+  } else if (cmHasLiteralPrefix(currentArg, "--build-makeprogram") &&
+             idx < allArgs.size() - 1) {
     idx++;
     this->BuildMakeProgram = allArgs[idx];
-  }
-  if (cmHasLiteralPrefix(currentArg, "--build-config-sample") &&
-      idx < allArgs.size() - 1) {
+  } else if (cmHasLiteralPrefix(currentArg, "--build-config-sample") &&
+             idx < allArgs.size() - 1) {
     idx++;
     this->ConfigSample = allArgs[idx];
-  }
-  if (cmHasLiteralPrefix(currentArg, "--build-noclean")) {
+  } else if (cmHasLiteralPrefix(currentArg, "--build-noclean")) {
     this->BuildNoClean = true;
-  }
-  if (cmHasLiteralPrefix(currentArg, "--build-options")) {
+  } else if (cmHasLiteralPrefix(currentArg, "--build-options")) {
     while (idx + 1 < allArgs.size() && allArgs[idx + 1] != "--build-target" &&
            allArgs[idx + 1] != "--test-command") {
       ++idx;
       this->BuildOptions.push_back(allArgs[idx]);
     }
-  }
-  if (cmHasLiteralPrefix(currentArg, "--test-command") &&
-      idx < allArgs.size() - 1) {
+  } else if (cmHasLiteralPrefix(currentArg, "--test-command") &&
+             idx < allArgs.size() - 1) {
     ++idx;
     this->TestCommand = allArgs[idx];
     while (idx + 1 < allArgs.size()) {
       ++idx;
       this->TestCommandArgs.push_back(allArgs[idx]);
     }
+  } else {
+    buildAndTestArg = false;
   }
+  validArg = validArg || buildAndTestArg;
   return 1;
 }
