@@ -14,11 +14,11 @@ Forwarded: not-needed
  2 files changed, 3 insertions(+), 7 deletions(-)
 
 diff --git a/Modules/FindPython/Support.cmake b/Modules/FindPython/Support.cmake
-index 08ab9c0..84292ca 100644
+index faca5ae..f46a78f 100644
 --- a/Modules/FindPython/Support.cmake
 +++ b/Modules/FindPython/Support.cmake
-@@ -1451,12 +1451,7 @@ unset (${_PYTHON_PREFIX}_SOABI)
- unset (${_PYTHON_PREFIX}_SOSABI)
+@@ -1533,12 +1533,7 @@ unset (${_PYTHON_PREFIX}_SOSABI)
+ unset (${_PYTHON_PREFIX}_DEBUG_POSTFIX)
  
  # Define lookup strategy
 -cmake_policy (GET CMP0094 _${_PYTHON_PREFIX}_LOOKUP_POLICY)
@@ -31,7 +31,7 @@ index 08ab9c0..84292ca 100644
  if (DEFINED ${_PYTHON_PREFIX}_FIND_STRATEGY)
    if (NOT ${_PYTHON_PREFIX}_FIND_STRATEGY MATCHES "^(VERSION|LOCATION)$")
      message (AUTHOR_WARNING "Find${_PYTHON_PREFIX}: ${${_PYTHON_PREFIX}_FIND_STRATEGY}: invalid value for '${_PYTHON_PREFIX}_FIND_STRATEGY'. 'VERSION' or 'LOCATION' expected.")
-@@ -1656,7 +1651,7 @@ if (DEFINED ${_PYTHON_PREFIX}_FIND_UNVERSIONED_NAMES)
+@@ -1738,7 +1733,7 @@ if (DEFINED ${_PYTHON_PREFIX}_FIND_UNVERSIONED_NAMES)
      set (_${_PYTHON_PREFIX}_FIND_UNVERSIONED_NAMES ${${_PYTHON_PREFIX}_FIND_UNVERSIONED_NAMES})
    endif()
  else()

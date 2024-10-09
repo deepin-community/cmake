@@ -41,7 +41,6 @@ DEB_HOST_GNU_TYPE=$(dpkg-architecture -f "-a$1" -qDEB_HOST_GNU_TYPE)
 DEB_HOST_GNU_CPU=$(dpkg-architecture -f "-a$1" -qDEB_HOST_GNU_CPU)
 case "$(dpkg-architecture -f "-a$1" -qDEB_HOST_ARCH_OS)" in
         linux) system_name=Linux; ;;
-        kfreebsd) system_name=kFreeBSD; ;;
         hurd) system_name=GNU; ;;
         *) exit 1; ;;
 esac

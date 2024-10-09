@@ -25,6 +25,7 @@ Properties of Global Scope
    /prop_gbl/CMAKE_C_KNOWN_FEATURES
    /prop_gbl/CMAKE_CUDA_KNOWN_FEATURES
    /prop_gbl/CMAKE_CXX_KNOWN_FEATURES
+   /prop_gbl/CMAKE_HIP_KNOWN_FEATURES
    /prop_gbl/CMAKE_ROLE
    /prop_gbl/DEBUG_CONFIGURATIONS
    /prop_gbl/DISABLED_FEATURES
@@ -39,11 +40,13 @@ Properties of Global Scope
    /prop_gbl/GENERATOR_IS_MULTI_CONFIG
    /prop_gbl/GLOBAL_DEPENDS_DEBUG_MODE
    /prop_gbl/GLOBAL_DEPENDS_NO_CYCLES
+   /prop_gbl/INSTALL_PARALLEL
    /prop_gbl/IN_TRY_COMPILE
    /prop_gbl/JOB_POOLS
    /prop_gbl/PACKAGES_FOUND
    /prop_gbl/PACKAGES_NOT_FOUND
    /prop_gbl/PREDEFINED_TARGETS_FOLDER
+   /prop_gbl/PROPAGATE_TOP_LEVEL_INCLUDES_TO_TRY_COMPILE
    /prop_gbl/REPORT_UNDEFINED_PROPERTIES
    /prop_gbl/RULE_LAUNCH_COMPILE
    /prop_gbl/RULE_LAUNCH_CUSTOM
@@ -129,7 +132,9 @@ Properties on Targets
    /prop_tgt/ARCHIVE_OUTPUT_DIRECTORY_CONFIG
    /prop_tgt/ARCHIVE_OUTPUT_NAME
    /prop_tgt/ARCHIVE_OUTPUT_NAME_CONFIG
+   /prop_tgt/AUTOGEN_BETTER_GRAPH_MULTI_CONFIG
    /prop_tgt/AUTOGEN_BUILD_DIR
+   /prop_tgt/AUTOGEN_COMMAND_LINE_LENGTH_MAX
    /prop_tgt/AUTOGEN_ORIGIN_DEPENDS
    /prop_tgt/AUTOGEN_PARALLEL
    /prop_tgt/AUTOGEN_TARGET_DEPENDS
@@ -192,6 +197,7 @@ Properties on Targets
    /prop_tgt/CXX_MODULE_SET
    /prop_tgt/CXX_MODULE_SET_NAME
    /prop_tgt/CXX_MODULE_SETS
+   /prop_tgt/CXX_MODULE_STD
    /prop_tgt/CXX_SCAN_FOR_MODULES
    /prop_tgt/CXX_STANDARD
    /prop_tgt/CXX_STANDARD_REQUIRED
@@ -211,6 +217,7 @@ Properties on Targets
    /prop_tgt/EXCLUDE_FROM_DEFAULT_BUILD
    /prop_tgt/EXCLUDE_FROM_DEFAULT_BUILD_CONFIG
    /prop_tgt/EXPORT_COMPILE_COMMANDS
+   /prop_tgt/EXPORT_FIND_PACKAGE_NAME
    /prop_tgt/EXPORT_NAME
    /prop_tgt/EXPORT_NO_SYSTEM
    /prop_tgt/EXPORT_PROPERTIES
@@ -334,6 +341,7 @@ Properties on Targets
    /prop_tgt/LINK_SEARCH_START_STATIC
    /prop_tgt/LINK_WHAT_YOU_USE
    /prop_tgt/LINKER_LANGUAGE
+   /prop_tgt/LINKER_TYPE
    /prop_tgt/LOCATION
    /prop_tgt/LOCATION_CONFIG
    /prop_tgt/MACHO_COMPATIBILITY_VERSION
@@ -389,11 +397,15 @@ Properties on Targets
    /prop_tgt/STATIC_LIBRARY_FLAGS_CONFIG
    /prop_tgt/STATIC_LIBRARY_OPTIONS
    /prop_tgt/SUFFIX
+   /prop_tgt/Swift_COMPILATION_MODE
    /prop_tgt/Swift_DEPENDENCIES_FILE
    /prop_tgt/Swift_LANGUAGE_VERSION
    /prop_tgt/Swift_MODULE_DIRECTORY
    /prop_tgt/Swift_MODULE_NAME
    /prop_tgt/SYSTEM
+   /prop_tgt/TEST_LAUNCHER
+   /prop_tgt/TRANSITIVE_COMPILE_PROPERTIES
+   /prop_tgt/TRANSITIVE_LINK_PROPERTIES
    /prop_tgt/TYPE
    /prop_tgt/UNITY_BUILD
    /prop_tgt/UNITY_BUILD_BATCH_SIZE
@@ -439,7 +451,9 @@ Properties on Targets
    /prop_tgt/VS_SDK_REFERENCES
    /prop_tgt/VS_SOLUTION_DEPLOY
    /prop_tgt/VS_SOURCE_SETTINGS_tool
+   /prop_tgt/VS_USE_DEBUG_LIBRARIES
    /prop_tgt/VS_USER_PROPS
+   /prop_tgt/VS_FILTER_PROPS
    /prop_tgt/VS_WINDOWS_TARGET_PLATFORM_MIN_VERSION
    /prop_tgt/VS_WINRT_COMPONENT
    /prop_tgt/VS_WINRT_REFERENCES

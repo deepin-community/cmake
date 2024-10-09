@@ -18,7 +18,8 @@
 #include <cm/optional>
 #include <cm/string_view>
 
-#include "cmsys/Process.h"
+#include <cm3p/uv.h>
+
 #include "cmsys/Status.hxx"      // IWYU pragma: export
 #include "cmsys/SystemTools.hxx" // IWYU pragma: export
 
@@ -339,10 +340,20 @@ public:
    */
   static void ReportLastSystemError(const char* m);
 
-  /** a general output handler for cmsysProcess  */
-  static int WaitForLine(cmsysProcess* process, std::string& line,
-                         cmDuration timeout, std::vector<char>& out,
-                         std::vector<char>& err);
+  enum class WaitForLineResult
+  {
+    None,
+    STDOUT,
+    STDERR,
+    Timeout,
+  };
+
+  /** a general output handler for libuv  */
+  static WaitForLineResult WaitForLine(uv_loop_t* loop, uv_stream_t* outPipe,
+                                       uv_stream_t* errPipe, std::string& line,
+                                       cmDuration timeout,
+                                       std::vector<char>& out,
+                                       std::vector<char>& err);
 
   static void SetForceUnixPaths(bool v) { s_ForceUnixPaths = v; }
   static bool GetForceUnixPaths() { return s_ForceUnixPaths; }
@@ -494,12 +505,6 @@ public:
                          const std::vector<std::string>& files,
                          cmTarExtractTimestamps extractTimestamps,
                          bool verbose);
-  // This should be called first thing in main
-  // it will keep child processes from inheriting the
-  // stdin and stdout of this process.  This is important
-  // if you want to be able to kill child processes and
-  // not get stuck waiting for all the output on the pipes.
-  static void DoNotInheritStdPipes();
 
   static void EnsureStdPipes();
 

@@ -25,6 +25,8 @@ set(CMakeLib_TESTS
   testXMLParser.cxx
   testXMLSafe.cxx
   testFindPackageCommand.cxx
+  testUVHandlePtr.cxx
+  testUVJobServerClient.cxx
   testUVProcessChain.cxx
   testUVRAII.cxx
   testUVStreambuf.cxx
@@ -42,6 +44,7 @@ if(CMake_ENABLE_DEBUGGER)
     testDebuggerVariables.cxx
     testDebuggerVariablesHelper.cxx
     testDebuggerVariablesManager.cxx
+    testDebuggerThread.cxx
     )
 endif()
 if (CMake_TEST_FILESYSTEM_PATH OR NOT CMake_HAVE_CXX_FILESYSTEM)
@@ -50,6 +53,7 @@ endif()
 
 add_executable(testUVProcessChainHelper testUVProcessChainHelper.cxx)
 target_link_libraries(testUVProcessChainHelper CMakeLib)
+target_compile_definitions(testUVProcessChainHelper PRIVATE WIN32_LEAN_AND_MEAN)
 
 set(testRST_ARGS ${CMAKE_CURRENT_SOURCE_DIR})
 set(testUVProcessChain_ARGS $<TARGET_FILE:testUVProcessChainHelper>)

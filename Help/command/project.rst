@@ -33,9 +33,22 @@ Also sets the variables:
 
   Boolean value indicating whether the project is top-level.
 
-Further variables are set by the optional arguments described in the following.
-If any of these arguments is not used, then the corresponding variables are
+Further variables are set by the optional arguments described in `Options`_
+further below. Where an option is not given, its corresponding variable is
 set to the empty string.
+
+Note that variables of the form ``<name>_SOURCE_DIR`` and ``<name>_BINARY_DIR``
+may also be set by other commands before ``project()`` is called (see the
+:command:`FetchContent_MakeAvailable` command for one example).
+Projects should not rely on ``<PROJECT-NAME>_SOURCE_DIR`` or
+``<PROJECT-NAME>_BINARY_DIR`` holding a particular value outside of the scope
+of the call to ``project()`` or one of its child scopes.
+
+.. versionchanged:: 3.30.4
+  If the variables ``<PROJECT-NAME>_SOURCE_DIR``,
+  ``<PROJECT-NAME>_BINARY_DIR``, or ``<PROJECT-NAME>_IS_TOP_LEVEL`` are
+  already set as non-cache variables when ``project(<PROJECT-NAME> ...)``
+  is called, the ``project()`` command will overwrite the previous values.
 
 Options
 ^^^^^^^
@@ -123,12 +136,12 @@ The following outlines the steps performed during a ``project()`` call:
 
 * .. versionadded:: 3.15
     For every ``project()`` call regardless of the project
-    name, include the file named by :variable:`CMAKE_PROJECT_INCLUDE_BEFORE`,
-    if set.
+    name, include the file(s) and module(s) named by
+    :variable:`CMAKE_PROJECT_INCLUDE_BEFORE`, if set.
 
 * .. versionadded:: 3.17
     If the ``project()`` command specifies ``<PROJECT-NAME>`` as its project
-    name, include the file named by
+    name, include the file(s) and module(s) named by
     :variable:`CMAKE_PROJECT_<PROJECT-NAME>_INCLUDE_BEFORE`, if set.
 
 * Set the various project-specific variables detailed in the `Synopsis`_
@@ -156,11 +169,11 @@ The following outlines the steps performed during a ``project()`` call:
 
 * .. versionadded:: 3.15
     For every ``project()`` call regardless of the project
-    name, include the file named by :variable:`CMAKE_PROJECT_INCLUDE`,
-    if set.
+    name, include the file(s) and module(s) named by
+    :variable:`CMAKE_PROJECT_INCLUDE`, if set.
 
 * If the ``project()`` command specifies ``<PROJECT-NAME>`` as its project
-  name, include the file named by
+  name, include the file(s) and module(s) named by
   :variable:`CMAKE_PROJECT_<PROJECT-NAME>_INCLUDE`, if set.
 
 Usage

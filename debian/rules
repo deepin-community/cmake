@@ -23,7 +23,6 @@ verify_build_flag = @grep \
 
 $(BUILD_FLAGS_FILE) verify-build-flags:
 	$(call $(flag_action),CMAKE_SKIP_RPATH,ON,"Skip rpath")
-	$(call $(flag_action),CMAKE_USE_RELATIVE_PATHS,ON,"Use relative paths")
 	$(call $(flag_action),CMAKE_VERBOSE_MAKEFILE,ON,"Verbose build")
 	$(call $(flag_action),CMAKE_C_FLAGS,"$(CFLAGS)","C flags")
 	$(call $(flag_action),CMAKE_CXX_FLAGS,"$(CXXFLAGS)","C++ flags")
@@ -71,12 +70,7 @@ else
 		$(CROSS_CMAKE_FLAGS)
 endif
 
-ifeq ($(DEB_HOST_ARCH_OS),kfreebsd)
-    # Workaround for Bug #815231: skip spuriously failing tests
-    EXCLUDED_TESTS = CTestTestUpload\|curl\|kwsys.testSystemTools\|BuildDepends\|RunCMake.Configure
-else
-    EXCLUDED_TESTS = CTestTestUpload\|curl
-endif
+EXCLUDED_TESTS = CTestTestUpload\|curl
 
 override_dh_auto_test:
 	# Pass -j1 to "make test" as a workaround, see https://gitlab.kitware.com/cmake/cmake/issues/17165

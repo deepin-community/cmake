@@ -189,8 +189,8 @@ bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
       } else if (copy == keyDEPFILE) {
         doing = doing_depfile;
         if (!mf.GetGlobalGenerator()->SupportsCustomCommandDepfile()) {
-          status.SetError("Option DEPFILE not supported by " +
-                          mf.GetGlobalGenerator()->GetName());
+          status.SetError(cmStrCat("Option DEPFILE not supported by ",
+                                   mf.GetGlobalGenerator()->GetName()));
           return false;
         }
       } else if (copy == keyJOB_POOL) {
@@ -357,13 +357,18 @@ bool cmAddCustomCommandCommand(std::vector<std::string> const& args,
     cc->SetDepends(depends);
     cc->SetImplicitDepends(implicit_depends);
     mf.AddCustomCommandToOutput(std::move(cc));
-  } else if (!byproducts.empty()) {
-    status.SetError("BYPRODUCTS may not be specified with SOURCE signatures");
-    return false;
-  } else if (uses_terminal) {
-    status.SetError("USES_TERMINAL may not be used with SOURCE signatures");
-    return false;
   } else {
+    if (!byproducts.empty()) {
+      status.SetError(
+        "BYPRODUCTS may not be specified with SOURCE signatures");
+      return false;
+    }
+
+    if (uses_terminal) {
+      status.SetError("USES_TERMINAL may not be used with SOURCE signatures");
+      return false;
+    }
+
     bool issueMessage = true;
     std::ostringstream e;
     MessageType messageType = MessageType::AUTHOR_WARNING;
