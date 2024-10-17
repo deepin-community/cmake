@@ -1,3 +1,9 @@
+cmake (3.30.5-1) unstable; urgency=medium
+
+  * New upstream version 3.30.5
+
+ -- Timo Röhling <roehling@debian.org>  Wed, 09 Oct 2024 08:14:22 +0200
+
 cmake (3.30.4-1) unstable; urgency=medium
 
   * New upstream version 3.30.4
