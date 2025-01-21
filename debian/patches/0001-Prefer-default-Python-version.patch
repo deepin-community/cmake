@@ -14,7 +14,7 @@ Forwarded: not-needed
  2 files changed, 3 insertions(+), 7 deletions(-)
 
 diff --git a/Modules/FindPython/Support.cmake b/Modules/FindPython/Support.cmake
-index faca5ae..f46a78f 100644
+index c741ec1..d55c59e 100644
 --- a/Modules/FindPython/Support.cmake
 +++ b/Modules/FindPython/Support.cmake
 @@ -1533,12 +1533,7 @@ unset (${_PYTHON_PREFIX}_SOSABI)
@@ -41,7 +41,7 @@ index faca5ae..f46a78f 100644
  
  
 diff --git a/Modules/FindPythonInterp.cmake b/Modules/FindPythonInterp.cmake
-index 443c6eb..aed0873 100644
+index e5bcb5f..3cfccb5 100644
 --- a/Modules/FindPythonInterp.cmake
 +++ b/Modules/FindPythonInterp.cmake
 @@ -107,6 +107,7 @@ if(DEFINED PYTHONLIBS_VERSION_STRING)
