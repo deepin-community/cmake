@@ -1,3 +1,63 @@
+cmake (3.31.4-2) unstable; urgency=medium
+
+  * Source only upload.
+
+ -- Timo Röhling <roehling@debian.org>  Wed, 15 Jan 2025 16:26:31 +0100
+
+cmake (3.31.4-1) unstable; urgency=medium
+
+  * New upstream version 3.31.4 (Closes: #1091023)
+
+ -- Timo Röhling <roehling@debian.org>  Wed, 15 Jan 2025 16:26:13 +0100
+
+cmake (3.31.3-1) unstable; urgency=medium
+
+  * New upstream version 3.31.3
+
+ -- Timo Röhling <roehling@debian.org>  Sun, 05 Jan 2025 23:16:50 +0100
+
+cmake (3.31.2-1) unstable; urgency=medium
+
+  * New upstream version 3.31.2
+  * Refresh patches (no functional changes)
+
+ -- Timo Röhling <roehling@debian.org>  Sun, 08 Dec 2024 21:42:00 +0100
+
+cmake (3.31.1-1) unstable; urgency=medium
+
+  * New upstream version 3.31.1
+  * Update patches
+    - Drop Fix-ImageMagick_-_ARCH_INCLUDE_DIR-detection.patch
+    - Drop Recognize-Multi-Arch-libdir-for-musl-linux-any.patch
+    - Drop LLD-linker-avoid-regression-on-archive-libraries-ded.patch
+    All patches have been accepted and applied by upstream.
+
+ -- Timo Röhling <roehling@debian.org>  Fri, 22 Nov 2024 23:59:06 +0100
+
+cmake (3.31.0-2) unstable; urgency=medium
+
+  * Avoid LLD linker regression on archive deduplication (Closes: #1087983)
+
+ -- Timo Röhling <roehling@debian.org>  Thu, 21 Nov 2024 16:01:07 +0100
+
+cmake (3.31.0-1) unstable; urgency=medium
+
+  * New upstream version 3.31.0
+  * Update patches
+    - Add metadata to patch for ImageMagick_ARCH_INCLUDE_DIR
+    - New patch to recognize musl-linux-any multiarch dirs
+      (Closes: #1085507)
+
+ -- Timo Röhling <roehling@debian.org>  Tue, 12 Nov 2024 10:31:58 +0100
+
+cmake (3.30.5-1.1) unstable; urgency=medium
+
+  * Non-maintainer upload.
+  * patches/FindImageMagick-version7.patch: adapt for ImageMagick version 7.
+    Closes #1087233.
+
+ -- Steve M. Robbins <smr@debian.org>  Mon, 11 Nov 2024 17:24:10 -0600
+
 cmake (3.30.5-1) unstable; urgency=medium
 
   * New upstream version 3.30.5

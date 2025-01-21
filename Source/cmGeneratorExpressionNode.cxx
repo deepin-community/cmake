@@ -3591,6 +3591,12 @@ struct TargetFilesystemArtifactResultCreator<ArtifactSonameTag>
                     "SHARED libraries.");
       return std::string();
     }
+    if (target->IsArchivedAIXSharedLibrary()) {
+      ::reportError(context, content->GetOriginalExpression(),
+                    "TARGET_SONAME_FILE is not allowed for "
+                    "AIX_SHARED_LIBRARY_ARCHIVE libraries.");
+      return std::string();
+    }
     std::string result = cmStrCat(target->GetDirectory(context->Config), '/',
                                   target->GetSOName(context->Config));
     return result;
@@ -3615,6 +3621,12 @@ struct TargetFilesystemArtifactResultCreator<ArtifactSonameImportTag>
       ::reportError(context, content->GetOriginalExpression(),
                     "TARGET_SONAME_IMPORT_FILE is allowed only for "
                     "SHARED libraries.");
+      return std::string();
+    }
+    if (target->IsArchivedAIXSharedLibrary()) {
+      ::reportError(context, content->GetOriginalExpression(),
+                    "TARGET_SONAME_IMPORT_FILE is not allowed for "
+                    "AIX_SHARED_LIBRARY_ARCHIVE libraries.");
       return std::string();
     }
 
@@ -4468,8 +4480,8 @@ static const struct ShellPathNode : public cmGeneratorExpressionNode
     const GeneratorExpressionContent* content,
     cmGeneratorExpressionDAGChecker* /*dagChecker*/) const override
   {
-    cmList listIn{ parameters.front() };
-    if (listIn.empty()) {
+    cmList list_in{ parameters.front() };
+    if (list_in.empty()) {
       reportError(context, content->GetOriginalExpression(),
                   "\"\" is not an absolute path.");
       return std::string();
@@ -4477,17 +4489,17 @@ static const struct ShellPathNode : public cmGeneratorExpressionNode
     cmStateSnapshot snapshot = context->LG->GetStateSnapshot();
     cmOutputConverter converter(snapshot);
     const char* separator = snapshot.GetState()->UseWindowsShell() ? ";" : ":";
-    std::vector<std::string> listOut;
-    listOut.reserve(listIn.size());
-    for (auto const& in : listIn) {
+    std::vector<std::string> list_out;
+    list_out.reserve(list_in.size());
+    for (auto const& in : list_in) {
       if (!cmSystemTools::FileIsFullPath(in)) {
         reportError(context, content->GetOriginalExpression(),
                     "\"" + in + "\" is not an absolute path.");
         return std::string();
       }
-      listOut.emplace_back(converter.ConvertDirectorySeparatorsForShell(in));
+      list_out.emplace_back(converter.ConvertDirectorySeparatorsForShell(in));
     }
-    return cmJoin(listOut, separator);
+    return cmJoin(list_out, separator);
   }
 } shellPathNode;
 
