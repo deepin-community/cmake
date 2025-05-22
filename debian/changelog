@@ -1,3 +1,54 @@
+cmake (4.0.2-1) experimental; urgency=medium
+
+  * New upstream version 4.0.2
+  * Refresh patches (no functional changes)
+
+ -- Timo Röhling <roehling@debian.org>  Sat, 10 May 2025 22:07:18 +0200
+
+cmake (4.0.1-1) experimental; urgency=medium
+
+  * New upstream version 4.0.1
+
+ -- Timo Röhling <roehling@debian.org>  Fri, 11 Apr 2025 11:37:59 +0200
+
+cmake (4.0.0-1) experimental; urgency=medium
+
+  * New upstream version 4.0.0
+  * Update patches
+    - Drop 0002-Avoid-using-undocumented-type-for-CURLOPT_NETRC-valu.patch
+      (applied upstream)
+  * Bump Standards-Version to 4.7.2
+  * Sanitize test environment
+  * Install new manpage but skip duplicate LICENSES
+  * Update d/copyright
+
+ -- Timo Röhling <roehling@debian.org>  Fri, 04 Apr 2025 10:55:16 +0200
+
+cmake (3.31.6-2) unstable; urgency=medium
+
+  * Avoid using undocumented type fo CURLOPT_NETRC values (Closes: #1101604)
+
+ -- Timo Röhling <roehling@debian.org>  Mon, 31 Mar 2025 16:09:14 +0200
+
+cmake (3.31.6-1) unstable; urgency=medium
+
+  * New upstream version 3.31.6
+  * Bump Standards-Version to 4.7.1
+
+ -- Timo Röhling <roehling@debian.org>  Tue, 25 Feb 2025 09:21:18 +0100
+
+cmake (3.31.5-2) unstable; urgency=medium
+
+  * Migrate cmake-qt-gui to Qt 6
+
+ -- Timo Röhling <roehling@debian.org>  Sat, 08 Feb 2025 21:57:44 +0100
+
+cmake (3.31.5-1) unstable; urgency=medium
+
+  * New upstream version 3.31.5
+
+ -- Timo Röhling <roehling@debian.org>  Tue, 28 Jan 2025 10:48:06 +0100
+
 cmake (3.31.4-2) unstable; urgency=medium
 
   * Source only upload.

@@ -1,5 +1,5 @@
 /* Distributed under the OSI-approved BSD 3-Clause License.  See accompanying
-   file Copyright.txt or https://cmake.org/licensing for details.  */
+   file LICENSE.rst or https://cmake.org/licensing for details.  */
 /* clang-format off */
 #include "cmGeneratorTarget.h"
 /* clang-format on */
@@ -31,7 +31,7 @@ using UseTo = cmGeneratorTarget::UseTo;
 using TransitiveProperty = cmGeneratorTarget::TransitiveProperty;
 }
 
-const std::map<cm::string_view, TransitiveProperty>
+std::map<cm::string_view, TransitiveProperty> const
   cmGeneratorTarget::BuiltinTransitiveProperties = {
     { "AUTOMOC_MACRO_NAMES"_s,
       { "INTERFACE_AUTOMOC_MACRO_NAMES"_s, UseTo::Compile } },
@@ -109,9 +109,15 @@ std::string cmGeneratorTarget::EvaluateInterfaceProperty(
   // Evaluate $<TARGET_PROPERTY:this,prop> as if it were compiled.  This is
   // a subset of TargetPropertyNode::Evaluate without stringify/parse steps
   // but sufficient for transitive interface properties.
-  cmGeneratorExpressionDAGChecker dagChecker(
-    context->Backtrace, this, prop, nullptr, dagCheckerParent,
-    this->LocalGenerator, context->Config);
+  cmGeneratorExpressionDAGChecker dagChecker{
+    this,
+    prop,
+    nullptr,
+    dagCheckerParent,
+    context->LG,
+    context->Config,
+    context->Backtrace,
+  };
   switch (dagChecker.Check()) {
     case cmGeneratorExpressionDAGChecker::SELF_REFERENCE:
       dagChecker.ReportError(
@@ -177,13 +183,12 @@ std::string cmGeneratorTarget::EvaluateInterfaceProperty(
 }
 
 cm::optional<cmGeneratorTarget::TransitiveProperty>
-cmGeneratorTarget::IsTransitiveProperty(cm::string_view prop,
-                                        cmLocalGenerator const* lg,
-                                        std::string const& config,
-                                        bool evaluatingLinkLibraries) const
+cmGeneratorTarget::IsTransitiveProperty(
+  cm::string_view prop, cmLocalGenerator const* lg, std::string const& config,
+  cmGeneratorExpressionDAGChecker const* dagChecker) const
 {
   cm::optional<TransitiveProperty> result;
-  static const cm::string_view kINTERFACE_ = "INTERFACE_"_s;
+  static cm::string_view const kINTERFACE_ = "INTERFACE_"_s;
   PropertyFor const propertyFor = cmHasPrefix(prop, kINTERFACE_)
     ? PropertyFor::Interface
     : PropertyFor::Build;
@@ -202,14 +207,7 @@ cmGeneratorTarget::IsTransitiveProperty(cm::string_view prop,
         result->Usage = cmGeneratorTarget::UseTo::Compile;
       }
     }
-  } else if (cmHasLiteralPrefix(prop, "COMPILE_DEFINITIONS_")) {
-    cmPolicies::PolicyStatus cmp0043 =
-      lg->GetPolicyStatus(cmPolicies::CMP0043);
-    if (cmp0043 == cmPolicies::WARN || cmp0043 == cmPolicies::OLD) {
-      result = TransitiveProperty{ "INTERFACE_COMPILE_DEFINITIONS"_s,
-                                   UseTo::Compile };
-    }
-  } else if (!evaluatingLinkLibraries) {
+  } else if (!dagChecker || !dagChecker->IsComputingLinkLibraries()) {
     // Honor TRANSITIVE_COMPILE_PROPERTIES and TRANSITIVE_LINK_PROPERTIES
     // from the link closure when we are not evaluating the closure itself.
     CustomTransitiveProperties const& ctp =
@@ -242,7 +240,7 @@ void cmGeneratorTarget::CustomTransitiveProperties::Add(cmValue props,
     cmList propsList(*props);
     for (std::string p : propsList) {
       std::string ip;
-      static const cm::string_view kINTERFACE_ = "INTERFACE_"_s;
+      static cm::string_view const kINTERFACE_ = "INTERFACE_"_s;
       if (cmHasPrefix(p, kINTERFACE_)) {
         ip = std::move(p);
         p = ip.substr(kINTERFACE_.length());

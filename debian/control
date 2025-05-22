@@ -7,12 +7,12 @@ Uploaders:
  Felix Geyer <fgeyer@debian.org>,
  Timo Röhling <roehling@debian.org>,
 Build-Depends:
- cmake <cross>,
  debhelper-compat (= 13),
+ cmake <cross>,
  git <!nocheck>,
  libarchive-dev (>= 3.3.3) <!pkg.cmake.bootstrap>,
  libcppdap-dev <!pkg.cmake.bootstrap>,
- libcurl4-openssl-dev <!pkg.cmake.bootstrap> | libcurl-ssl-dev <!pkg.cmake.bootstrap>,
+ libcurl4-openssl-dev <!pkg.cmake.bootstrap>,
  libexpat1-dev <!pkg.cmake.bootstrap>,
  libjsoncpp-dev <!pkg.cmake.bootstrap>,
  libncurses-dev <!pkg.cmake.bootstrap !pkg.cmake.nogui>,
@@ -22,12 +22,12 @@ Build-Depends:
  procps [!hurd-any],
  python3-sphinx:native,
  python3-sphinxcontrib.qthelp:native,
- qtbase5-dev <!pkg.cmake.bootstrap !pkg.cmake.nogui>,
+ qt6-base-dev <!pkg.cmake.bootstrap !pkg.cmake.nogui>,
  zlib1g-dev <!pkg.cmake.bootstrap>,
 Build-Depends-Indep:
  dh-sequence-sphinxdoc,
 Rules-Requires-Root: no
-Standards-Version: 4.7.0
+Standards-Version: 4.7.2
 Vcs-Git: https://salsa.debian.org/cmake-team/cmake.git
 Vcs-Browser: https://salsa.debian.org/cmake-team/cmake
 Homepage: https://cmake.org/
