@@ -1,0 +1,57 @@
+diff --git a/Modules/FindJNI.cmake b/Modules/FindJNI.cmake
+index 82e3d88f..0cf80ba0 100644
+--- a/Modules/FindJNI.cmake
++++ b/Modules/FindJNI.cmake
+@@ -178,6 +178,8 @@ macro(java_append_library_directories _var)
+     set(_java_libarch "${CMAKE_SYSTEM_PROCESSOR}" "s390" "s390x")
+   elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^sh")
+     set(_java_libarch "sh")
++  elseif(CMAKE_SYSTEM_PROCESSOR MATCHES "^sw_64")
++    set(_java_libarch "sw64")
+   else()
+     set(_java_libarch "${CMAKE_SYSTEM_PROCESSOR}")
+   endif()
+diff --git a/Utilities/KWIML/include/kwiml/abi.h b/Utilities/KWIML/include/kwiml/abi.h
+index cefe9ce2..ef96e7c2 100644
+--- a/Utilities/KWIML/include/kwiml/abi.h
++++ b/Utilities/KWIML/include/kwiml/abi.h
+@@ -481,6 +481,10 @@ suppression macro KWIML_ABI_NO_VERIFY was defined.
+ #elif defined(__riscv) || defined(__riscv__)
+ # define KWIML_ABI_ENDIAN_ID KWIML_ABI_ENDIAN_ID_LITTLE
+ 
++/* Sunway */
++#elif defined(__sw_64__)
++# define KWIML_ABI_ENDIAN_ID KWIML_ABI_ENDIAN_ID_LITTLE
++
+ /* Unknown CPU */
+ #elif !defined(KWIML_ABI_NO_ERROR_ENDIAN)
+ # error "Byte order of target CPU unknown."
+diff --git a/Utilities/cmlibrhash/librhash/byte_order.h b/Utilities/cmlibrhash/librhash/byte_order.h
+index 73863e06..1cb372a6 100644
+--- a/Utilities/cmlibrhash/librhash/byte_order.h
++++ b/Utilities/cmlibrhash/librhash/byte_order.h
+@@ -77,7 +77,7 @@ extern "C" {
+ #elif defined(CPU_IA32) || defined(CPU_X64) || defined(__ia64) || defined(__ia64__) || \
+       defined(__alpha__) || defined(_M_ALPHA) || defined(vax) || defined(MIPSEL) || \
+       defined(_ARM_) || defined(__arm__) || defined(_M_ARM64) || defined(_M_ARM64EC) || \
+-      defined(__loongarch64)
++      defined(__loongarch64) || defined(__sw_64__)
+ #  define RHASH_BYTE_ORDER RHASH_BYTE_ORDER_LE
+ #elif defined(__sparc) || defined(__sparc__) || defined(sparc) || \
+       defined(_ARCH_PPC) || defined(_ARCH_PPC64) || defined(_POWER) || \
+diff --git a/Utilities/cmlibrhash/librhash/byte_order.h.rej b/Utilities/cmlibrhash/librhash/byte_order.h.rej
+new file mode 100644
+index 00000000..c4bdc3f9
+--- /dev/null
++++ b/Utilities/cmlibrhash/librhash/byte_order.h.rej
+@@ -0,0 +1,10 @@
++diff a/Utilities/cmlibrhash/librhash/byte_order.h b/Utilities/cmlibrhash/librhash/byte_order.h	(rejected hunks)
++@@ -76,7 +76,7 @@ extern "C" {
++ #ifdef RHASH_BYTE_ORDER
++ #elif defined(CPU_IA32) || defined(CPU_X64) || defined(__ia64) || defined(__ia64__) || \
++       defined(__alpha__) || defined(_M_ALPHA) || defined(vax) || defined(MIPSEL) || \
++-      defined(_ARM_) || defined(__arm__)
+++      defined(_ARM_) || defined(__arm__) || defined(__sw_64__)
++ #  define RHASH_BYTE_ORDER RHASH_BYTE_ORDER_LE
++ #elif defined(__sparc) || defined(__sparc__) || defined(sparc) || \
++       defined(_ARCH_PPC) || defined(_ARCH_PPC64) || defined(_POWER) || \
