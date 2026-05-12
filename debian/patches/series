@@ -1,2 +1,3 @@
 0001-Prefer-default-Python-version.patch
 0001-deepin-sw_64-support.diff
+CVE-2025-9301.patch
