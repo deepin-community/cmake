@@ -1,3 +1,11 @@
+cmake (3.31.4-2deepin2) unstable; urgency=medium
+
+  * fix: CVE-2025-9301 - Fix reachable assertion in cmForEachFunctionBlocker.
+    foreach loops with a trailing `IN` (no loop variable given) could trigger
+    an assertion error. Add early exit when Args.size() == IterationVarsCount.
+
+ -- deepin-ci-robot <packages@deepin.org>  Tue, 12 May 2026 22:45:00 +0800
+
 cmake (3.31.4-2deepin1) unstable; urgency=medium
 
   * feat: add sw64 support.
